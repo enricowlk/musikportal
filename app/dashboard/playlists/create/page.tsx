@@ -1,10 +1,10 @@
 // app/dashboard/playlists/create/page.tsx
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import AudioPlayer from "react-h5-audio-player";
 import "react-h5-audio-player/lib/styles.css";
-import { FiMusic, FiX, FiPlay, FiPause, FiPlus } from "react-icons/fi";
+import { FiMusic, FiX, FiPlay, FiPause, FiPlus, FiSearch } from "react-icons/fi";
 import NavBar from "@/app/components/Navigation/Navbar";
 
 type Song = {
@@ -15,9 +15,13 @@ type Song = {
 
 export default function CreatePlaylist() {
   const [songs, setSongs] = useState<Song[]>([]);
+  const [filteredSongs, setFilteredSongs] = useState<Song[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedSongs, setSelectedSongs] = useState<string[]>([]);
   const [playlistName, setPlaylistName] = useState("");
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
+  const audioPlayerRef = useRef<AudioPlayer>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const router = useRouter();
 
   // Lade vorhandene Songs beim Start
@@ -26,9 +30,26 @@ export default function CreatePlaylist() {
       const res = await fetch("/api/songs");
       const data = await res.json();
       setSongs(data);
+      setFilteredSongs(data);
     };
     loadSongs();
   }, []);
+
+  // Filtere Songs basierend auf Suchanfrage
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setFilteredSongs(songs);
+    } else {
+      const filtered = songs.filter(song =>
+        song.filename
+          .toLowerCase()
+          .replace(/^\d+_/, "")
+          .replace(/\.(mp3|wav)$/i, "")
+          .includes(searchQuery.toLowerCase())
+      );
+      setFilteredSongs(filtered);
+    }
+  }, [searchQuery, songs]);
 
   const toggleSongSelection = (songId: string) => {
     setSelectedSongs(prev =>
@@ -71,50 +92,79 @@ export default function CreatePlaylist() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Song-Auswahl */}
             <div
-              className="rounded-xl shadow-md border overflow-hidden"
+              className="z-1 rounded-xl shadow-md border overflow-hidden"
               style={{ background: 'var(--background)', color: 'var(--foreground)', borderColor: 'var(--border)' }}
             >
               <div className="p-6" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>
                 <h2 className="text-xl font-semibold" style={{ color: 'var(--foreground)' }}>Verfügbare Songs</h2>
                 <p className="text-sm mt-1" style={{ color: 'var(--foreground)' }}>{songs.length} Songs verfügbar</p>
+                
+                {/* Suchfeld */}
+                <div className="mt-4 relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <FiSearch className="text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
+                    placeholder="Songs suchen..."
+                    style={{ color: 'var(--foreground)', background: 'var(--background)', borderColor: 'var(--border)' }}
+                  />
+                </div>
               </div>
               <div className="p-4 max-h-[500px] overflow-y-auto space-y-3">
-                {songs.map(song => (
-                  <div
-                    key={song.id}
-                    className={`p-4 rounded-lg cursor-pointer transition-all duration-200 ${
-                      selectedSongs.includes(song.id)
-                        ? "bg-blue-50 border-2 border-blue-300"
-                        : "border border-gray-200 hover:border-blue-200 hover:shadow-sm"
-                    }`}
-                    onClick={() => toggleSongSelection(song.id)}
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium truncate" style={{ color: 'var(--foreground)' }}>
-                        {song.filename.replace(/^\d+_/, "").replace(/\.(mp3|wav)$/i, "")}
-                      </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setCurrentlyPlaying(currentlyPlaying === song.path ? null : song.path);
-                        }}
-                        className={`ml-3 p-2 rounded-full ${
-                          currentlyPlaying === song.path 
-                            ? "bg-red-100" 
-                            : "bg-blue-100"
-                        }`} style={{ color: 'var(--foreground)' }}
-                      >
-                        {currentlyPlaying === song.path ? <FiPause /> : <FiPlay />}
-                      </button>
-                    </div>
+                {filteredSongs.length === 0 ? (
+                  <div className="text-center py-8" style={{ color: 'var(--foreground)', opacity: 0.6 }}>
+                    <FiSearch className="mx-auto text-2xl mb-2" />
+                    <p>Keine Songs gefunden</p>
                   </div>
-                ))}
+                ) : (
+                  filteredSongs.map(song => (
+                    <div
+                      key={song.id}
+                      className={`p-4 rounded-lg cursor-pointer transition-all duration-200 ${
+                        selectedSongs.includes(song.id)
+                          ? "border-2"
+                          : "border border-gray-300 hover:shadow-sm"
+                      }`}
+                      style={{
+                        background: selectedSongs.includes(song.id) ? 'var(--background-alt)' : 'var(--background)',
+                        color: 'var(--foreground)',
+                        borderColor: selectedSongs.includes(song.id) ? '#3b82f6' : 'var(--border)', // blue-500
+                        borderWidth: selectedSongs.includes(song.id) ? '2px' : '1px'
+                      }}
+                      onClick={() => toggleSongSelection(song.id)}
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium truncate" style={{ color: 'var(--foreground)' }}>
+                          {song.filename.replace(/^\d+_/, "").replace(/\.(mp3|wav)$/i, "")}
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentlyPlaying(currentlyPlaying === song.path ? null : song.path);
+                          }}
+                          className={`ml-3 p-2 rounded-full transition-colors ${
+                            currentlyPlaying === song.path 
+                              ? "bg-red-100 text-red-600" 
+                              : "bg-green-100 text-green-600"
+                          }`}
+                          style={{ color: currentlyPlaying === song.path ? 'var(--danger, #dc2626)' : 'var(--success, #16a34a)' }}
+                        >
+                          {currentlyPlaying === song.path ? <FiPause /> : <FiPlay />}
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
             {/* Playlist-Editor */}
             <div
-              className="rounded-xl shadow-md border overflow-hidden"
+              className="z-1 rounded-xl shadow-md border overflow-hidden"
               style={{ background: 'var(--background)', color: 'var(--foreground)', borderColor: 'var(--border)' }}
             >
               <div className="p-6" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>
@@ -132,7 +182,8 @@ export default function CreatePlaylist() {
                     value={playlistName}
                     onChange={(e) => setPlaylistName(e.target.value)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
-                    placeholder="Meine Tanzplaylist"
+                    placeholder="Meine Playlist"
+                    style={{ color: 'var(--foreground)', background: 'var(--background)' }}
                   />
                 </div>
 
@@ -148,13 +199,13 @@ export default function CreatePlaylist() {
                       selectedSongs.map(songId => {
                         const song = songs.find(s => s.id === songId);
                         return song ? (
-                          <div key={songId} className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>
+                          <div key={songId} className="flex items-center justify-between p-3 rounded-lg border border-gray-700/50" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>
                             <span className="font-medium" style={{ color: 'var(--foreground)' }}>
                               {song.filename.replace(/^\d+_/, "").replace(/\.(mp3|wav)$/i, "")}
                             </span>
                             <button
                               onClick={() => toggleSongSelection(songId)}
-                              className="p-2 rounded-full hover:bg-red-50 transition-colors"
+                              className="p-2 rounded-full hover:bg-red-400 transition-colors"
                               style={{ color: 'var(--foreground)' }}
                             >
                               <FiX />
@@ -183,18 +234,45 @@ export default function CreatePlaylist() {
 
           {/* Audio-Player */}
           {currentlyPlaying && (
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
-              <div className="max-w-6xl mx-auto px-4">
+            <div className="fixed bottom-0 left-0 right-0 border-t shadow-lg" style={{ background: 'var(--background-alt)', borderColor: 'var(--border)' }}>
+              <div className="max-w-4xl mx-auto px-4">
                 <AudioPlayer
-                  autoPlay={true}
+                  ref={audioPlayerRef}
+                  autoPlay
                   src={currentlyPlaying}
-                  onPlay={() => {}}
+                  volume={0.7}
                   style={{ 
                     padding: "16px 0",
-                    backgroundColor: "white",
+                    background: 'var(--background-alt)',
+                    color: 'var(--foreground)',
                     boxShadow: "none"
                   }}
                   className="rounded-none"
+                  showSkipControls={true}
+                  showJumpControls={false}
+                  onClickNext={() => {
+                    if (!currentlyPlaying || songs.length === 0) return;
+                    const currentIndex = songs.findIndex(song => song.path === currentlyPlaying);
+                    const nextIndex = (currentIndex + 1) % songs.length;
+                    setCurrentlyPlaying(songs[nextIndex].path);
+                    setIsPlaying(true);
+                  }}
+                  onClickPrevious={() => {
+                    if (!currentlyPlaying || songs.length === 0) return;
+                    const currentIndex = songs.findIndex(song => song.path === currentlyPlaying);
+                    const prevIndex = (currentIndex - 1 + songs.length) % songs.length;
+                    setCurrentlyPlaying(songs[prevIndex].path);
+                    setIsPlaying(true);
+                  }}
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                  onEnded={() => {
+                    if (!currentlyPlaying || songs.length === 0) return;
+                    const currentIndex = songs.findIndex(song => song.path === currentlyPlaying);
+                    const nextIndex = (currentIndex + 1) % songs.length;
+                    setCurrentlyPlaying(songs[nextIndex].path);
+                    setIsPlaying(true);
+                  }}
                 />
               </div>
             </div>

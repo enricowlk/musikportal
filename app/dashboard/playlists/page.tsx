@@ -99,20 +99,25 @@ export default function PlaylistsPage() {
                 style={{ color: 'var(--foreground)', background: 'var(--background)' }}
               />
             </div>
-            
-            <select 
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="border border-gray-300 rounded-lg px-5 py-2.5 h-[44px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-              style={{ color: 'var(--foreground)', background: 'var(--background)' }}
-            >
-              <option value="updated">Neueste</option>
-              <option value="name">A-Z</option>
-            </select>
+
+            <div className="relative flex items-center h-[44px]">
+              <select 
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="border border-gray-300 rounded-lg px-5 pr-8 py-2.5 h-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none w-full"
+                style={{ color: 'var(--foreground)', background: 'var(--background)' }}
+              >
+                <option value="updated">Neueste</option>
+                <option value="name">A-Z</option>
+              </select>
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 flex items-center" style={{height: '44px'}}>
+                <svg width="20" height="20" fill="none" viewBox="0 0 20 20" style={{display: 'block', margin: 'auto'}}><path d="M6 8l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </span>
+            </div>
             
             <Link 
               href="/dashboard/playlists/create" 
-              className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-5 py-2.5 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
+              className="z-1 flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-5 py-2.5 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
             >
               <FiPlus className="text-lg" /> Neue Playlist
             </Link>
@@ -137,7 +142,7 @@ export default function PlaylistsPage() {
               <div 
                 key={playlist.id} 
                 style={{ background: 'var(--background)', color: 'var(--foreground)' }}
-                className="rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 border" suppressHydrationWarning
+                className="z-1 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 border" suppressHydrationWarning
               >
                 <Link 
                   href={`/dashboard/playlists/${playlist.id}`} 

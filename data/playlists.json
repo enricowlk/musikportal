@@ -1,11 +1,14 @@
 [
   {
-    "id": "1754244000468",
-    "name": "...",
+    "id": "1754333116349",
+    "name": "Playlist 1",
     "songIds": [
       "1754231974925_Apache_207_-_Mann_muss.mp3",
-      "1754243832203_Pajel_x_Summer_Cem_-_MS_FATTY.mp3"
+      "1754243832203_Pajel_x_Summer_Cem_-_MS_FATTY.mp3",
+      "1754332655949_Schüttel_deinen_Speck_[_ezmp3.cc_].mp3",
+      "1754332688445_AYLIVA_-_ICH_WILL_NICHT_HEIM_[Lyrics].mp3",
+      "1754332668739_AYLIVA_-_BEI_NACHT_[Lyrics].mp3"
     ],
-    "createdAt": "2025-08-03T18:00:00.468Z"
+    "createdAt": "2025-08-04T18:45:16.349Z"
   }
 ]
