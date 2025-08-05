@@ -11,17 +11,11 @@ export default async function RootLayout({
     <html lang="de" className="h-full" suppressHydrationWarning>
       <body className="h-full transition-colors duration-200">
         <img
-          id="dtv-background-logo-light"
-          src="/Logo/dtvlogoerweitert.png"
-          alt="DTV Logo Light"
-          className="dtv-logo block dark:hidden"
-        />
-        <img
-          id="dtv-background-logo-dark"
-          src="/Logo/dtvlogoerweitert.png"
-          alt="DTV Logo Dark"
-          className="dtv-logo hidden dark:block"
-        />
+    src="/Logo/dtvlogoerweitert.png"
+    alt="DTV Logo"
+    className="fixed top-1/2 right-0 -translate-y-1/2 w-[60vw] max-w-none opacity-30 pointer-events-none z-0 dark:opacity-20"
+  />
+
         <ThemeProvider>
           {children}
         </ThemeProvider>
