@@ -23,7 +23,6 @@
 body {
   background-color: var(--background);
   background-image: 
-    var(--logo),
     var(--texture-light),
     var(--gradient-light);
   background-position: center right, top left, center;
@@ -38,7 +37,6 @@ body {
 .dark body {
   background-color: var(--background);
   background-image: 
-    var(--logo),
     var(--texture-dark),
     var(--gradient-dark);
   background-position: center right, top left, center;
@@ -60,11 +58,20 @@ body {
   width: 60vw;
   max-width: none;
   height: auto;
-  z-index: 0;
+  z-index: -1; /* Stelle sicher, dass es hinter allem liegt */
   opacity: 0.3;
   pointer-events: none;
 }
 
+@supports (-webkit-touch-callout: none) {
+  /* CSS speziell für Safari */
+  .dtv-logo {
+    position: absolute;
+    right: 0;
+    top: 50vh;
+    transform: translateY(-50%);
+  }
+}
 
 
 
