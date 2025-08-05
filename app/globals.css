@@ -49,7 +49,6 @@ body {
 }
 
 
-
 @supports (-webkit-touch-callout: none) {
   img[alt="DTV Logo"] {
     position: absolute;
