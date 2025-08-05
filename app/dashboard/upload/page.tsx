@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import NavBar from "@/app/components/Navigation/Navbar";
 
 export default function UploadPage() {
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<File[]>([]); // Ausgewählte Dateien
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]); // Hochgeladene Dateien
   const [uploadStatus, setUploadStatus] = useState<Record<string, "pending" | "success" | "error">>({});
   const [dragActive, setDragActive] = useState(false);
   const dropZoneRef = useRef<HTMLDivElement>(null);
@@ -34,9 +35,14 @@ export default function UploadPage() {
   const handleDrop = useCallback((e: React.DragEvent) => {
     handleDrag(e);
     setDragActive(false);
-    const files = Array.from(e.dataTransfer.files)
+    const newFiles = Array.from(e.dataTransfer.files)
       .filter(file => file.type.includes("audio"));
-    if (files.length) setFiles(prev => [...prev, ...files]);
+    if (newFiles.length) {
+      setFiles(prev => {
+        const existingNames = new Set(prev.map(f => f.name));
+        return [...prev, ...newFiles.filter(f => !existingNames.has(f.name))];
+      });
+    }
   }, []);
 
   const removeFile = (name: string) => {
@@ -62,6 +68,17 @@ export default function UploadPage() {
           ...prev,
           [file.name]: res.ok ? "success" : "error",
         }));
+
+        if (res.ok) {
+          // Verschiebe Datei in hochgeladene Dateien
+          setUploadedFiles((prev) => [...prev, file]);
+          setFiles((prev) => prev.filter((f) => f.name !== file.name));
+          setUploadStatus((prev) => {
+            const copy = { ...prev };
+            delete copy[file.name];
+            return copy;
+          });
+        }
       }
       router.refresh();
     } catch (error) {
@@ -94,6 +111,7 @@ export default function UploadPage() {
                   : "border-dashed border-gray-300 hover:border-blue-300"
               }`}
               style={{ background: 'var(--background)', color: 'var(--foreground)', borderColor: dragActive ? 'var(--primary)' : 'var(--border)' }}
+              onClick={() => document.getElementById('file-upload')?.click()}
             >
               {/* Drag Active Overlay */}
               <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${
@@ -125,16 +143,22 @@ export default function UploadPage() {
                 type="file"
                 multiple
                 accept=".mp3,.wav"
-                onChange={(e) => setFiles(prev => [...prev, ...Array.from(e.target.files || [])])}
+                onChange={(e) => {
+                  const newFiles = Array.from(e.target.files || []);
+                  setFiles(prev => {
+                    const existingNames = new Set(prev.map(f => f.name));
+                    return [...prev, ...newFiles.filter(f => !existingNames.has(f.name))];
+                  });
+                }}
                 className="hidden"
                 id="file-upload"
               />
             </div>
 
-            {/* File List */}
+            {/* Ausgewählte Dateien */}
             {files.length > 0 && (
               <div className="flex flex-col items-center">
-                <div className="space-y-4 mb-8 w-full">
+                <div className="z-1 space-y-4 mb-8 w-full">
                   <h2 className="font-semibold text-lg text-center" style={{ color: 'var(--foreground)' }}>
                     Ausgewählte Dateien <span className="text-blue-500">({files.length})</span>
                   </h2>
@@ -142,45 +166,28 @@ export default function UploadPage() {
                     {files.map(file => (
                       <div 
                         key={file.name} 
-                        className={`border rounded-xl p-4 flex justify-between items-center transition-all ${
-                          uploadStatus[file.name] === 'success' 
-                            ? 'bg-green-50 border-green-200' 
-                            : uploadStatus[file.name] === 'error' 
-                              ? 'bg-red-50 border-red-200' 
-                              : 'bg-white border-gray-200 hover:border-blue-200'
-                        }`}
+                        className={`rounded-xl p-4 flex justify-between items-center transition-all border`}
+                        style={{
+                          background: 'var(--background-alt)',
+                          borderColor: 'var(--border)',
+                          color: 'var(--foreground)'
+                        }}
                       >
                         <div className="flex items-center gap-3 flex-grow">
-                          <FiMusic className={`text-lg ${
-                            uploadStatus[file.name] === 'success' 
-                              ? 'text-green-500' 
-                              : uploadStatus[file.name] === 'error' 
-                                ? 'text-red-500' 
-                                : 'text-gray-400'
-                          }`} />
+                          <FiMusic className="text-lg" style={{ color: 'var(--foreground)' }} />
                           <div className="min-w-0">
-                            <p className="font-medium text-gray-800 truncate">{file.name}</p>
-                            <div className="text-xs text-gray-500">
+                            <p className="font-medium truncate" style={{ color: 'var(--foreground)' }}>{file.name}</p>
+                            <div className="text-xs" style={{ color: 'var(--foreground-alt)' }}>
                               {(file.size / (1024 * 1024)).toFixed(2)} MB
-                              {uploadStatus[file.name] === "pending" && (
-                                <span className="text-yellow-500 ml-2">Wird hochgeladen...</span>
-                              )}
-                              {uploadStatus[file.name] === "error" && (
-                                <span className="text-red-500 ml-2">Upload fehlgeschlagen</span>
-                              )}
                             </div>
                           </div>
                         </div>
-                        {uploadStatus[file.name] === "success" ? (
-                          <FiCheck className="text-2xl text-green-500" />
-                        ) : (
-                          <button 
-                            onClick={() => removeFile(file.name)}
-                            className="p-2 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-50 transition-colors"
-                          >
-                            <FiX className="text-lg" />
-                          </button>
-                        )}
+                        <button 
+                          onClick={() => removeFile(file.name)}
+                          className="p-2 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-50 transition-colors"
+                        >
+                          <FiX className="text-lg" />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -190,7 +197,7 @@ export default function UploadPage() {
                 <div className="w-full">
                   <button
                     onClick={uploadFiles}
-                    disabled={Object.values(uploadStatus).some(status => status === "pending")}
+                    disabled={files.length === 0 || Object.values(uploadStatus).some(status => status === "pending")}
                     className={`w-full py-3 px-6 rounded-xl font-medium transition-all ${
                       Object.values(uploadStatus).some(status => status === "pending")
                         ? "bg-gray-300 text-gray-500 cursor-not-allowed"
@@ -211,6 +218,42 @@ export default function UploadPage() {
                       </>
                     )}
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* Hochgeladene Dateien */}
+            {uploadedFiles.length > 0 && (
+              <div className="flex flex-col items-center mt-8">
+                <div className="z-1 space-y-4 mb-8 w-full">
+                  <h2 className="font-semibold text-lg text-center" style={{ color: 'var(--foreground)' }}>
+                    Hochgeladene Dateien <span className="text-green-500">({uploadedFiles.length})</span>
+                  </h2>
+                  <div className="space-y-3">
+                    {uploadedFiles.map(file => (
+                      <div 
+                        key={file.name} 
+                        className={`rounded-xl p-4 flex justify-between items-center transition-all border`}
+                        style={{
+                          background: 'var(--success-bg, #22c55e22)',
+                          borderColor: '#22c55e',
+                          color: 'var(--foreground)'
+                        }}
+                      >
+                        <div className="flex items-center gap-3 flex-grow">
+                          <FiMusic className="text-lg" style={{ color: '#22c55e' }} />
+                          <div className="min-w-0">
+                            <p className="font-medium truncate" style={{ color: 'var(--foreground)' }}>{file.name}</p>
+                            <div className="text-xs" style={{ color: 'var(--foreground-alt)' }}>
+                              {(file.size / (1024 * 1024)).toFixed(2)} MB
+                              <span style={{ color: '#22c55e' }} className="ml-2">Erfolgreich hochgeladen</span>
+                            </div>
+                          </div>
+                        </div>
+                        <FiCheck className="text-2xl text-green-500" />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

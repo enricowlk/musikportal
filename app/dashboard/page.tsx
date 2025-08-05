@@ -36,7 +36,7 @@ export default function Home() {
           {features.map((feature, index) => (
             <div 
               key={index} 
-              className="rounded-xl shadow-sm p-8 border hover:shadow-md transition-shadow"
+              className="z-1 rounded-xl shadow-sm p-8 border hover:shadow-md transition-shadow"
               style={{ background: 'var(--background)', color: 'var(--foreground)', borderColor: 'var(--border)' }}
             >
               <div className="text-center">
@@ -53,11 +53,6 @@ export default function Home() {
               </div>
             </div>
           ))}
-        </div>
-
-        <div className="rounded-xl shadow-sm p-8 border" style={{ background: 'var(--background)', color: 'var(--foreground)', borderColor: 'var(--border)' }}>
-          <h2 className="text-2xl font-semibold mb-6 text-center">Wie es funktioniert</h2>
-          {/* Schritt-für-Schritt Anleitung */}
         </div>
       </main>
     </div>

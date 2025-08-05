@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { FiHome, FiMusic, FiUpload, FiList, FiMenu, FiX, FiSun, FiMoon, FiUser } from "react-icons/fi";
+import { FiHome, FiMusic, FiUpload, FiList, FiMenu, FiX, FiSun, FiMoon } from "react-icons/fi";
 import { useTheme } from "../Theme/ThemeProvider";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -29,8 +29,9 @@ export default function NavBar() {
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3 }}
-        style={{ background: 'var(--background)', color: 'var(--foreground)' }}
-        className={`sticky top-0 z-50 ${scrolled ? 'shadow-lg backdrop-blur-sm bg-opacity-90' : 'shadow-sm'} border-b border-gray-200 dark:border-gray-800`}
+        className={`sticky top-0 z-50 bg-[var(--navbar-bg)] text-[var(--navbar-text)] ${
+          scrolled ? 'shadow-lg backdrop-blur-sm bg-opacity-90' : 'shadow-sm'
+        }`}
         suppressHydrationWarning
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -39,13 +40,13 @@ export default function NavBar() {
             <div className="flex items-center">
               <Link href="/dashboard" className="flex items-center group">
                 <motion.div 
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={{ scale: 1.05 }} 
                   whileTap={{ scale: 0.95 }}
                   className="flex items-center text-blue-600 dark:text-blue-400 font-bold"
                 >
                   <FiMusic className="mr-2 text-xl group-hover:text-blue-500 dark:group-hover:text-blue-300 transition-colors" />
                   <span className="group-hover:text-blue-500 dark:group-hover:text-blue-300 transition-colors">
-                    Musikportal
+                    DTV Musikportal
                   </span>
                 </motion.div>
               </Link>
@@ -72,19 +73,18 @@ export default function NavBar() {
                 isActive={pathname === '/dashboard/upload'}
               />
               
-              {/* Theme Toggle Button */}
               <motion.button
-              whileHover={{ scale: 1.1, rotate: 15 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={toggleTheme}
-              className="p-2 rounded-full transition-all duration-300 transform-gpu"
-            >
-              {theme === 'light' ? (
-                <FiSun className="text-lg text-black hover:text-yellow-500" />
-              ) : (
-                <FiMoon className="text-lg text-gray-300 hover:text-blue-400" />
-              )}
-            </motion.button>
+                whileHover={{ scale: 1.1, rotate: 15 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={toggleTheme}
+                className="p-2 rounded-full transition-all duration-300 transform-gpu"
+              >
+                {theme === 'light' ? (
+                  <FiSun className="text-lg text-[var(--navbar-icon)] hover:text-yellow-500" />
+                ) : (
+                  <FiMoon className="text-lg text-[var(--navbar-icon)] hover:text-blue-400" />
+                )}
+              </motion.button>
             </div>
 
             {/* Mobile Menu Button */}
@@ -93,15 +93,7 @@ export default function NavBar() {
                 whileHover={{ scale: 1.1, rotate: 15 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={toggleTheme}
-                className={`
-                  p-2 rounded-full 
-                  text-gray-700 dark:text-gray-300 
-                  hover:text-yellow-500 dark:hover:text-blue-400
-                  transition-all duration-300
-                  hover:bg-gray-100 dark:hover:bg-gray-700/50
-                  transform-gpu
-                `}
-                aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+                className="p-2 rounded-full text-[var(--navbar-icon)] hover:text-[var(--navbar-icon-hover)] transition-all"
               >
                 {theme === 'light' ? <FiMoon className="text-lg" /> : <FiSun className="text-lg" />}
               </motion.button>
@@ -110,8 +102,7 @@ export default function NavBar() {
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={toggleMobileMenu}
-                className="text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 focus:outline-none transition-colors"
-                aria-label="Menü öffnen"
+                className="text-[var(--navbar-icon)] hover:text-[var(--navbar-icon-hover)] focus:outline-none transition-colors"
               >
                 {mobileMenuOpen ? (
                   <FiX className="text-xl" />
@@ -131,7 +122,11 @@ export default function NavBar() {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
-              className="md:hidden bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 overflow-hidden"
+              className="md:hidden bg-[var(--navbar-bg)] border-t border-[var(--navbar-border)]"
+              style={{ 
+                backdropFilter: scrolled ? 'blur(8px)' : 'none',
+                backgroundColor: scrolled ? 'var(--navbar-bg-scrolled)' : 'var(--navbar-bg)'
+              }}
             >
               <div className="px-2 pt-2 pb-3 space-y-1">
                 <MobileNavLink 
@@ -161,45 +156,38 @@ export default function NavBar() {
         </AnimatePresence>
       </motion.nav>
       
-      {/* Dieser div sorgt für den Abstand unter der Navbar */}
       <div className="h-16"></div>
     </>
   );
 }
 
 // Desktop NavLink Komponente
-function NavLink({ 
-  href, 
-  icon, 
-  text, 
-  isActive 
-}: { 
-  href: string; 
-  icon: React.ReactNode; 
-  text: string;
-  isActive: boolean;
-}) {
+function NavLink({ href, icon, text, isActive }: { href: string; icon: React.ReactNode; text: string; isActive: boolean }) {
   return (
     <Link href={href} passHref>
       <motion.div
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className={`flex items-center transition-all font-medium relative group`}
+        className="flex items-center transition-all font-medium relative group pb-1"
       >
         <span className="mr-2">{icon}</span>
         {text}
-        <motion.div 
-          initial={{ width: 0 }}
-          animate={{ width: isActive ? '100%' : 0 }}
-          className="absolute bottom-0 left-0 h-0.5 bg-blue-500"
-        />
-        {!isActive && (
-          <motion.div 
-            className="absolute bottom-0 left-0 h-0.5 bg-blue-500"
-            initial={{ width: 0 }}
-            whileHover={{ width: '100%' }}
-            transition={{ duration: 0.2 }}
-          />
+        {isActive && (
+          <motion.svg 
+            className="absolute bottom-0 left-0 w-full h-1"
+            viewBox="0 0 100 5"
+            preserveAspectRatio="none"
+          >
+            <motion.path
+              d="M0,2 C20,5 40,0 60,3 C80,6 90,0 100,2"
+              stroke="currentColor"
+              strokeWidth="2"
+              fill="none"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 0.8, ease: "easeInOut" }}
+            />
+          </motion.svg>
         )}
       </motion.div>
     </Link>
@@ -207,13 +195,7 @@ function NavLink({
 }
 
 // Mobile NavLink Komponente
-function MobileNavLink({ 
-  href, 
-  icon, 
-  text, 
-  isActive,
-  onClick
-}: { 
+function MobileNavLink({ href, icon, text, isActive, onClick }: { 
   href: string; 
   icon: React.ReactNode; 
   text: string;
@@ -225,13 +207,29 @@ function MobileNavLink({
       <motion.div
         whileTap={{ scale: 0.95 }}
         onClick={onClick}
-        style={{ color: 'var(--foreground)' }}
-        className={`flex items-center px-3 py-2 rounded-md text-base font-medium ${
-          isActive ? 'bg-gray-100 dark:bg-gray-700' : 'hover:bg-gray-50 dark:hover:bg-gray-700'
-        } transition-colors`}
+        className={`
+          flex items-center px-3 py-3 rounded-md text-base font-medium
+          ${
+            isActive 
+              ? 'bg-[var(--navbar-active-bg)] text-[var(--navbar-active-text)]' 
+              : 'text-[var(--navbar-text)] hover:bg-[var(--navbar-hover-bg)]'
+          }
+          transition-colors duration-200
+          border-l-4 ${isActive ? 'border-[var(--navbar-active-border)]' : 'border-transparent'}
+        `}
       >
-        <span className="mr-3">{icon}</span>
+        <span className={`mr-3 ${isActive ? 'text-[var(--navbar-active-icon)]' : ''}`}>
+          {icon}
+        </span>
         {text}
+        {isActive && (
+          <motion.span 
+            className="ml-auto h-2 w-2 rounded-full bg-[var(--navbar-active-border)]"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 500 }}
+          />
+        )}
       </motion.div>
     </Link>
   );
