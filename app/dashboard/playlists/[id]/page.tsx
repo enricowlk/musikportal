@@ -35,13 +35,10 @@ export default function PlaylistDetail() {
   const { theme } = useTheme();
 
   // Theme-based colors
-  const buttonBg = theme === 'dark' ? 'bg-[#333] hover:bg-[#999]' : 'bg-[#666] hover:bg-[#999]';
   const cardBg = theme === 'dark' ? 'bg-[#111]' : 'bg-white';
   const cardBorder = theme === 'dark' ? 'border-[#333]' : 'border-gray-200';
   const inputBg = theme === 'dark' ? 'bg-[#111]' : 'bg-white';
   const inputBorder = theme === 'dark' ? 'border-[#333]' : 'border-gray-300';
-  const footerBg = theme === 'dark' ? 'bg-[#111]' : 'bg-gray-50';
-  const footerBorder = theme === 'dark' ? 'border-[#333]' : 'border-gray-200';
   const primaryText = theme === 'dark' ? 'text-gray-100' : 'text-gray-900';
   const secondaryText = theme === 'dark' ? 'text-[#999]' : 'text-[#555]';
 
@@ -83,16 +80,38 @@ export default function PlaylistDetail() {
     loadData();
   }, [id]);
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      setSongs((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
+  const handleDragEnd = async (event: DragEndEvent) => {
+  const { active, over } = event;
+  
+  if (over && active.id !== over.id) {
+    const newItems = arrayMove(
+      songs,
+      songs.findIndex((item) => item.id === active.id),
+      songs.findIndex((item) => item.id === over.id)
+    );
+    
+    setSongs(newItems);
+    
+    try {
+      const response = await fetch(`/api/playlists/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          songIds: newItems.map((song) => song.id)
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error("Failed to save new order");
+      }
+    } catch (error) {
+      console.error("Fehler beim Speichern der neuen Reihenfolge:", error);
+      alert("Die neue Reihenfolge konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.");
     }
-  };
+  }
+};
 
   const handlePlayAll = () => {
     if (songs.length > 0) {
@@ -139,21 +158,34 @@ export default function PlaylistDetail() {
   };
 
   const removeSongFromPlaylist = async (songId: string) => {
-    try {
-      const response = await fetch(`/api/playlists/${id}/songs/${songId}`, {
-        method: "DELETE",
-      });
+  try {
+    const response = await fetch(`/api/playlists/${id}/songs/${songId}`, {
+      method: "DELETE",
+    });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      setSongs(prevSongs => prevSongs.filter(song => song.id !== songId));
-    } catch (error) {
-      console.error("Fehler beim Löschen des Songs:", error);
-      alert("Der Song konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.");
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-  };
+
+    const newSongList = songs.filter(song => song.id !== songId);
+    setSongs(newSongList);
+    
+    // Reihenfolge in der Datenbank aktualisieren
+    await fetch(`/api/playlists/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        songIds: newSongList.map((song) => song.id)
+      }),
+    });
+
+  } catch (error) {
+    console.error("Fehler beim Löschen des Songs:", error);
+    alert("Der Song konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.");
+  }
+};
 
   const toggleAddSongsModal = () => {
     setShowAddSongsModal(!showAddSongsModal);
@@ -170,29 +202,43 @@ export default function PlaylistDetail() {
   };
 
   const addSongsToPlaylist = async () => {
-    try {
-      const response = await fetch(`/api/playlists/${id}/songs`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ songIds: selectedSongs }),
-      });
+  try {
+    const response = await fetch(`/api/playlists/${id}/songs`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ songIds: selectedSongs }),
+    });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const addedSongs = await response.json();
-      setSongs(prev => [...prev, ...addedSongs]);
-      setShowAddSongsModal(false);
-      setSelectedSongs([]);
-      setSearchTerm("");
-    } catch (error) {
-      console.error("Fehler beim Hinzufügen der Songs:", error);
-      alert("Songs konnten nicht hinzugefügt werden. Bitte versuchen Sie es erneut.");
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-  };
+
+    const addedSongs = await response.json();
+    // Neue Songs am Ende hinzufügen und Reihenfolge speichern
+    const newSongList = [...songs, ...addedSongs];
+    setSongs(newSongList);
+    
+    // Reihenfolge in der Datenbank aktualisieren
+    await fetch(`/api/playlists/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        songIds: newSongList.map((song) => song.id)
+      }),
+    });
+
+    setShowAddSongsModal(false);
+    setSelectedSongs([]);
+    setSearchTerm("");
+  } catch (error) {
+    console.error("Fehler beim Hinzufügen der Songs:", error);
+    alert("Songs konnten nicht hinzugefügt werden. Bitte versuchen Sie es erneut.");
+  }
+};
 
   const filteredAvailableSongs = availableSongs.filter(song => 
     !songs.some(s => s.id === song.id) && 
@@ -217,11 +263,14 @@ export default function PlaylistDetail() {
         <div className="max-w-4xl mx-auto">
           <Link 
             href="/dashboard/playlists" 
-            className={`flex items-center gap-1 mb-6 transition-colors hover:text-blue-400 ${secondaryText}`}
+            className={`flex items-center gap-1 mb-6 group ${primaryText} transition-all duration-300`}
           >
-            <FiChevronLeft className="text-lg" /> Zurück zu allen Playlists
+            <FiChevronLeft className="text-lg group-hover:-translate-x-1 transition-transform" />
+            <span className="relative">
+              Zurück zu allen Playlists
+              <span className="absolute left-0 bottom-0 w-0 h-0.5 bg-[#999] group-hover:w-full transition-all duration-300"></span>
+            </span>
           </Link>
-
           <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 p-6 rounded-xl shadow-sm border ${cardBg} ${cardBorder}`}>
             <div className="flex-grow">
               {isEditingName ? (
@@ -268,19 +317,19 @@ export default function PlaylistDetail() {
             <div className="flex gap-3">
               <button 
                 onClick={toggleAddSongsModal}
-                className="flex items-center gap-2 px-4 py-3 rounded-xl font-medium transition-all bg-green-600 hover:bg-green-700 text-white shadow-md hover:shadow-lg"
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium transition-all bg-white/90 bg-[length:0%_100%] hover:bg-[length:100%_100%] bg-gradient-to-r from-white/80 to-[#888] bg-no-repeat transition-[background-size] duration-400 shadow-md hover:shadow-lg`}
               >
-                <FiPlus className="text-lg" />
-                <span>Songs hinzufügen</span>
+                <FiPlus className={`text-black text-lg`} />
+                <span className={`text-black`}>Songs hinzufügen</span>
               </button>
               
               <button 
                 onClick={handlePlayAll}
                 disabled={songs.length === 0}
-                className={`flex items-center gap-3 px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+                className={`flex items-center gap-3 px-6 py-3 rounded-xl font-medium transition-all ${
                   songs.length === 0 
                     ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95'
+                    : 'bg-[#333] bg-[length:0%_100%] hover:bg-[length:100%_100%] bg-gradient-to-r from-white/80 to-[#888] bg-no-repeat transition-[background-size] duration-400 text-white shadow-md hover:shadow-lg transform'
                 }`}
               >
                 <FiPlay className="text-xl" /> 
@@ -338,7 +387,7 @@ export default function PlaylistDetail() {
 
           {/* Modal zum Hinzufügen von Songs */}
             {showAddSongsModal && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className={`fixed inset-0 ${theme === 'dark' ? 'bg-[#0a0a0a]' : 'bg-white'} bg-opacity-50 flex items-center justify-center z-50 p-4`}>
                 <div className={`rounded-xl shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col ${cardBg} ${cardBorder}`}>
                   {/* Header mit Titel und Schließen-Button */}
                   <div className={`p-6 border-b ${cardBorder}`}>
@@ -346,9 +395,9 @@ export default function PlaylistDetail() {
                       <h2 className={`text-2xl font-bold ${primaryText}`}>Songs hinzufügen</h2>
                       <button 
                         onClick={toggleAddSongsModal}
-                        className={`p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 ${secondaryText}`}
+                        className={`p-2 rounded-full dark:hover:text-red-500 transition-colors ${secondaryText}`}
                       >
-                        <FiX className="text-xl" />
+                        <FiX className={`text-xl`} />
                       </button>
                     </div>
                     
@@ -362,7 +411,7 @@ export default function PlaylistDetail() {
                         placeholder="Nach Songs suchen..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className={`block w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputBorder} ${primaryText} ${inputBg}`}
+                        className={`block w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-white ${inputBorder} ${primaryText} ${inputBg}`}
                       />
                     </div>
                   </div>
@@ -383,9 +432,13 @@ export default function PlaylistDetail() {
                             key={song.id} 
                             className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                               selectedSongs.includes(song.id) 
-                                ? 'bg-blue-100 dark:bg-blue-900/30' 
-                                : `${cardBg} hover:bg-gray-100 dark:hover:bg-gray-700/50`
+                                ? 'dark:hover:bg-[#999]' 
+                                : `${cardBg} dark:hover:bg-[#999]`
                             } ${cardBorder}`}
+                            style={{
+                              borderColor: selectedSongs.includes(song.id) ? 'var(--border)' : 'var(--border)',
+                              borderWidth: selectedSongs.includes(song.id) ? '2px' : '1px'
+                            }}
                             onClick={() => toggleSongSelection(song.id)}
                           >
                             <div className="flex items-center gap-4">
@@ -393,20 +446,15 @@ export default function PlaylistDetail() {
                                 type="checkbox"
                                 checked={selectedSongs.includes(song.id)}
                                 onChange={() => toggleSongSelection(song.id)}
-                                className={`h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 ${
+                                className={`h-5 w-5 rounded ${
                                   theme === 'dark' ? 'dark:border-gray-500' : ''
                                 }`}
                                 onClick={(e) => e.stopPropagation()}
                               />
                               <div className="flex-grow">
                                 <h3 className={`font-medium ${primaryText}`}>
-                                  {song.title}
+                                  {song.filename.replace(/^\d+_?/, "").replace(/_/g, " ").replace(/\.(mp3|wav)$/i, "")}
                                 </h3>
-                                {song.duration && (
-                                  <p className={`text-sm ${secondaryText}`}>
-                                    {song.duration}
-                                  </p>
-                                )}
                               </div>
                             </div>
                           </div>
@@ -430,10 +478,10 @@ export default function PlaylistDetail() {
                     <button
                       onClick={addSongsToPlaylist}
                       disabled={selectedSongs.length === 0}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      className={`px-4 py-2 rounded-lg font-medium ${
                         selectedSongs.length === 0 
-                          ? `${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} text-gray-500 cursor-not-allowed` 
-                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                          ? `bg-gray-200 text-gray-500 cursor-not-allowed` 
+                          : 'bg-[#333] bg-[length:0%_100%] hover:bg-[length:100%_100%] bg-gradient-to-r from-white/80 to-[#888] bg-no-repeat transition-[background-size] duration-400 text-white shadow-md hover:shadow-lg transform'
                       }`}
                     >
                       {selectedSongs.length} Songs hinzufügen
@@ -485,9 +533,9 @@ function SortableSong({
   return (
     <div
       ref={setNodeRef}
-      className={`flex items-center p-4 rounded-xl transition-all ${
+      className={`flex items-center p-2 rounded-xl transition-all ${
         isPlaying 
-          ? "ring-2 ring-blue-500" 
+          ? "hologram-effect" 
           : "hover:shadow-sm"
       } ${isDragging ? 'shadow-lg' : ''} ${cardBg} ${cardBorder}`}
       style={{
@@ -495,18 +543,34 @@ function SortableSong({
         cursor: isDragging ? 'grabbing' : 'pointer',
         position: 'relative',
         opacity: 1,
-        backgroundColor: cardBg === 'bg-[#111]' ? 'rgb(17, 17, 17)' : 'rgb(255, 255, 255)'
+        backgroundColor: cardBg === 'bg-[#111]' ? 'rgb(17, 17, 17)' : 'rgb(255, 255, 255)',
+        border: cardBorder === 'border-[#333]' ? '1px solid #333' : '1px solid #e5e7eb',
       }}
     >
       <button 
         {...attributes}
         {...listeners}
-        className="mr-4 p-2 rounded-full transition-colors hover:bg-gray-200 dark:hover:bg-gray-700"
+        className="p-2 rounded-full transition-colors hover:bg-gray-200 dark:hover:bg-gray-700"
         aria-label="Drag handle"
         style={{ color: secondaryText }}
       >
         <FiList className="text-lg" />
       </button>
+
+      {/* Grüner Play / Roter Stop Button */}
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            onPlay();
+          }}
+          className={`p-2 transition-all mr-3 rounded-full border ${
+            isPlaying 
+              ? 'text-red-600 hover:text-red-800 border-transparent hover:border-red-800' 
+              : 'text-green-600 hover:text-green-800 border-transparent hover:border-green-800'
+          }`}
+        >
+          {isPlaying ? <FiPause className="text-lg" /> : <FiPlay className="text-lg" />}
+        </button>
       
       <div className="flex-grow">
         <h3 className={`font-medium ${primaryText}`}>
@@ -529,21 +593,6 @@ function SortableSong({
           title="Song entfernen"
         >
           <FiTrash2 className="text-lg" />
-        </button>
-        
-        {/* Grüner Play / Roter Stop Button */}
-        <button 
-          onClick={(e) => {
-            e.stopPropagation();
-            onPlay();
-          }}
-          className={`p-3 rounded-full transition-all ${
-            isPlaying 
-              ? 'bg-red-100 hover:bg-red-200 text-red-600' 
-              : 'bg-green-100 hover:bg-green-200 text-green-600'
-          }`}
-        >
-          {isPlaying ? <FiPause className="text-lg" /> : <FiPlay className="text-lg" />}
         </button>
       </div>
     </div>

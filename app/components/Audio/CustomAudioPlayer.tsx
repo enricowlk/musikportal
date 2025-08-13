@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
 import { usePlayer } from '@/app/context/PlayerContent';
 import { useTheme } from '@/app/components/Theme/ThemeProvider';
+import Image from 'next/image';
 
 interface CustomAudioPlayerProps {
   className?: string;
@@ -141,15 +142,16 @@ export default function CustomAudioPlayer({ className }: CustomAudioPlayerProps)
       <div className="flex items-center gap-3 w-1/4 min-w-[180px]">
         <div className={`
           w-12 h-12 flex-shrink-0 rounded-lg flex items-center justify-center
-          ${buttonBg}
           ${isPlaying ? 'scale-105' : ''}
           transition-all duration-300
         `}>
-          {isPlaying ? (
-            <Pause size={20} className="text-white" />
-          ) : (
-            <Play size={20} className="text-white" />
-          )}
+          <Image 
+            src="/Logo/dtvlogo.png" 
+            alt="DTV Logo" 
+            width={80} 
+            height={80} 
+            className="object-contain"
+          />
         </div>
         <div className="truncate">
           <div className={`font-medium text-sm sm:text-md truncate ${primaryText}`} title={currentSong?.filename}>

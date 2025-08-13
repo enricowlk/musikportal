@@ -86,16 +86,16 @@ export default function PlaylistsPage() {
   );
 
   // Farben für beide Themes
-  const buttonBg = theme === 'dark' ? 'bg-[#333] hover:bg-[#999]' : 'bg-[#666] hover:bg-[#999]';
   const cardBg = theme === 'dark' ? 'bg-black/20' : 'bg-white';
   const cardBorder = theme === 'dark' ? 'border-[#333]' : 'border-gray-200';
-  const inputBg = theme === 'dark' ? 'bg-black/20' : 'bg-white';
+  const inputBg = theme === 'dark' ? 'bg-black' : 'bg-white';
   const inputBorder = theme === 'dark' ? 'border-[#333]' : 'border-gray-300';
   const inputFocus = theme === 'dark' ? 'focus:ring-gray-500 focus:border-gray-500' : 'focus:ring-gray-400 focus:border-gray-400';
   const footerBg = theme === 'dark' ? 'bg-[#111]' : 'bg-gray-50';
   const footerBorder = theme === 'dark' ? 'border-[#333]' : 'border-gray-200';
   const badgeBg = theme === 'dark' ? 'bg-[#111] border-[#333] text-gray-200' : 'bg-gray-100 border-gray-300 text-gray-800';
   const dateColor = theme === 'dark' ? 'text-[#999]' : 'text-[#555]';
+  const secondaryText = theme === 'dark' ? 'text-[#999]' : 'text-[#555]';
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>
@@ -135,7 +135,7 @@ export default function PlaylistsPage() {
             
             <Link 
               href="/dashboard/playlists/create" 
-              className={`z-1 flex items-center gap-2 text-white px-5 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg ${buttonBg}`}
+              className={`z-1 flex items-center gap-2 text-white px-5 py-2.5 rounded-lg transition-all shadow-md bg-[#333] bg-[length:0%_100%] hover:bg-[length:100%_100%] bg-gradient-to-r from-white/80 to-[#888] bg-no-repeat transition-[background-size] duration-400`}
             >
               <FiPlus className="text-lg" /> Neue Playlist
             </Link>
@@ -186,8 +186,7 @@ export default function PlaylistsPage() {
                       e.preventDefault();
                       handleDelete(playlist.id);
                     }}
-                    className="p-2 rounded-full transition-colors hover:bg-gray-700/20"
-                    style={{ color: 'var(--foreground-alt)' }}
+                    className={`p-2 ${secondaryText} hover:text-red-500 transition-colors`}
                     title="Löschen"
                   >
                     <FiTrash2 className="text-lg" />

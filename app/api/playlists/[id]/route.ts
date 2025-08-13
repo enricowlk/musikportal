@@ -119,3 +119,39 @@ export async function DELETE(
     return NextResponse.json({ error: "Löschen fehlgeschlagen" }, { status: 500 });
   }
 }
+
+// PATCH - Update song order
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const { songIds } = await request.json();
+
+    if (!songIds || !Array.isArray(songIds)) {
+      return NextResponse.json(
+        { error: "Invalid song IDs provided" },
+        { status: 400 }
+      );
+    }
+
+    const playlists = await readPlaylists();
+    const playlistIndex = playlists.findIndex((p) => p.id === id);
+
+    if (playlistIndex === -1) {
+      return NextResponse.json({ error: "Playlist not found" }, { status: 404 });
+    }
+
+    playlists[playlistIndex].songIds = songIds;
+    await writePlaylists(playlists);
+
+    return NextResponse.json({ success: true });
+  } catch (error: unknown) {
+    console.error("PATCH error:", error);
+    return NextResponse.json(
+      { error: "Failed to update song order" },
+      { status: 500 }
+    );
+  }
+}

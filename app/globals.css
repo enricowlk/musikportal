@@ -55,10 +55,30 @@ body {
   }
 }
 
+@keyframes hologram {
+  0% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.3; }
+}
 
+.hologram-effect {
+  position: relative;
+  overflow: hidden;
+}
 
-
-
-
-
-
+.hologram-effect::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  background: linear-gradient(
+    45deg,
+    rgba(0,255,255,0.1),
+    rgba(255,0,255,0.3),
+    rgba(0,255,255,0.1)
+  );
+  animation: hologram 3s infinite;
+  z-index: -1;
+}

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { FiHome, FiMusic, FiUpload, FiList, FiMenu, FiX, FiSun, FiMoon } from "react-icons/fi";
+import { FiHome, FiUpload, FiList, FiMenu, FiX, FiSun, FiMoon } from "react-icons/fi";
 import { useTheme } from "../Theme/ThemeProvider";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -39,15 +39,46 @@ export default function NavBar() {
             {/* Logo */}
             <div className="flex items-center">
               <Link href="/dashboard" className="flex items-center group">
-                <motion.div 
-                  whileHover={{ scale: 1.05 }} 
-                  whileTap={{ scale: 0.95 }}
-                  className="flex items-center text-blue-600 dark:text-blue-400 font-bold"
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="flex items-center space-x-3"
                 >
-                  <FiMusic className="mr-2 text-xl group-hover:text-blue-500 dark:group-hover:text-blue-300 transition-colors" />
-                  <span className="group-hover:text-blue-500 dark:group-hover:text-blue-300 transition-colors">
+                  {/* Soundwave Icon */}
+                  <motion.div 
+                    className="flex items-center h-6 space-x-1"
+                    animate={{ transition: { staggerChildren: 0.1 } }}
+                  >
+                    {[0.8, 1.2, 0.7, 1.5, 0.6].map((height, i) => (
+                      <motion.div
+                        key={i}
+                        animate={{
+                          height: [`${height * 16}px`, `${height * 22}px`],
+                          transition: {
+                            duration: 1 + i * 0.2,
+                            repeat: Infinity,
+                            repeatType: "reverse",
+                            ease: "easeInOut"
+                          }
+                        }}
+                        className="w-1 bg-[var(--foreground-alt)] dark:bg-[var(--foreground)] rounded-full"
+                      />
+                    ))}
+                  </motion.div>
+
+                  <motion.span
+                    className="text-base font-semibold text-[var(--foreground)] dark:text-[var(--foreground)]"
+                    whileHover={{ 
+                      color: "var(--foreground)",
+                      filter: "brightness(1.2)" 
+                    }}
+                    transition={{ duration: 0.2 }}
+                  >
                     DTV Musikportal
-                  </span>
+                  </motion.span>
                 </motion.div>
               </Link>
             </div>

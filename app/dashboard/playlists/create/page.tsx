@@ -1,4 +1,3 @@
-// app/dashboard/playlists/create/page.tsx
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -6,7 +5,7 @@ import { FiMusic, FiX, FiPlay, FiPause, FiPlus, FiSearch } from "react-icons/fi"
 import NavBar from "@/app/components/Navigation/Navbar";
 import { usePlayer } from "@/app/context/PlayerContent";
 import { Song } from '@/app/types';
-
+import { useTheme } from "@/app/components/Theme/ThemeProvider";
 
 export default function CreatePlaylist() {
   const [filteredSongs, setFilteredSongs] = useState<Song[]>([]);
@@ -14,6 +13,7 @@ export default function CreatePlaylist() {
   const [selectedSongs, setSelectedSongs] = useState<string[]>([]);
   const [playlistName, setPlaylistName] = useState("");
   const router = useRouter();
+  const { theme } = useTheme();
   const {
     currentlyPlaying, 
     isPlaying, 
@@ -22,6 +22,34 @@ export default function CreatePlaylist() {
     playSong, 
     pauseSong
   } = usePlayer();
+
+  // Scrollbar Styling für Dark-Mode
+  const scrollbarStyle = theme === 'dark' ? `
+    /* Webkit browsers */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #333;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #666;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #888;
+    }
+  ` : '';
+
+  useEffect(() => {
+    const styleElement = document.createElement('style');
+    styleElement.innerHTML = scrollbarStyle;
+    document.head.appendChild(styleElement);
+    
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, [theme, scrollbarStyle]);
 
   // Lade vorhandene Songs beim Start
   useEffect(() => {
@@ -131,8 +159,8 @@ export default function CreatePlaylist() {
                       style={{
                         background: selectedSongs.includes(song.id) ? 'var(--background-alt)' : 'var(--background)',
                         color: 'var(--foreground)',
-                        borderColor: selectedSongs.includes(song.id) ? '#3b82f6' : 'var(--border)', // blue-500
-                        borderWidth: selectedSongs.includes(song.id) ? '2px' : '1px'
+                        borderColor: selectedSongs.includes(song.id) ? 'var(--border)' : 'var(--border)',
+                        borderWidth: selectedSongs.includes(song.id) ? '3px' : '1px'
                       }}
                       onClick={() => toggleSongSelection(song.id)}
                     >
@@ -153,10 +181,10 @@ export default function CreatePlaylist() {
                               playSong(song.path);
                             }
                           }}
-                          className={`ml-3 p-2 rounded-full transition-colors ${
+                          className={`ml-3 p-2 transition-all rounded-full border ${
                             currentlyPlaying === song.path && isPlaying
-                              ? "bg-red-100 text-red-600"
-                              : "bg-green-100 text-green-600"
+                              ? "text-red-600 hover:text-red-800 border-transparent hover:border-red-800"
+                              : "text-green-600 hover:text-green-800 border-transparent hover:border-green-800"
                           }`}
                         >
                           {currentlyPlaying === song.path && isPlaying ? <FiPause /> : <FiPlay />}
