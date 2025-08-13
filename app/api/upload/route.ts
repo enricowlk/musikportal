@@ -1,7 +1,12 @@
 // app/api/upload/route.ts
-import { writeFile } from "fs/promises";
+import { writeFile, mkdir as fsMkdir } from "fs/promises";
 import { NextResponse } from "next/server";
 import path from "path";
+
+interface MkdirOptions {
+  recursive?: boolean;
+  mode?: number;
+}
 
 export async function POST(req: Request) {
   try {
@@ -51,10 +56,9 @@ export async function POST(req: Request) {
   }
 }
 
-// Hilfsfunktion für Verzeichnis-Erstellung
-async function mkdir(dir: string, options?: any) {
-  const { mkdir } = await import("fs/promises");
-  return mkdir(dir, options).catch((e) => {
+// Type-safe Hilfsfunktion für Verzeichnis-Erstellung
+async function mkdir(dir: string, options?: MkdirOptions) {
+  return fsMkdir(dir, options).catch((e: NodeJS.ErrnoException) => {
     if (e.code !== "EEXIST") throw e;
   });
 }

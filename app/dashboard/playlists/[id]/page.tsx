@@ -1,14 +1,14 @@
 "use client";
 import 'react-h5-audio-player/lib/styles.css';
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import AudioPlayer from "react-h5-audio-player";
-import { FiChevronLeft, FiPlay, FiPause, FiMusic, FiList } from "react-icons/fi";
+import { FiChevronLeft, FiPlay, FiPause, FiMusic, FiList, FiEdit2, FiTrash2, FiX, FiCheck, FiPlus, FiSearch } from "react-icons/fi";
 import Link from "next/link";
 import NavBar from "@/app/components/Navigation/Navbar";
+import { usePlayer } from "@/app/context/PlayerContent";
 import { useTheme } from "@/app/components/Theme/ThemeProvider";
 
 type Song = {
@@ -22,34 +22,57 @@ type Song = {
 export default function PlaylistDetail() {
   const { id } = useParams();
   const [songs, setSongs] = useState<Song[]>([]);
+  const [availableSongs, setAvailableSongs] = useState<Song[]>([]);
   const [playlistName, setPlaylistName] = useState("");
-  const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const audioPlayerRef = useRef<AudioPlayer>(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState("");
+  const [showAddSongsModal, setShowAddSongsModal] = useState(false);
+  const [selectedSongs, setSelectedSongs] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const { currentlyPlaying, isPlaying, playSong, pauseSong, setSongs: setPlayerSongs } = usePlayer();
+  const { theme } = useTheme();
+
+  // Theme-based colors
+  const buttonBg = theme === 'dark' ? 'bg-[#333] hover:bg-[#999]' : 'bg-[#666] hover:bg-[#999]';
+  const cardBg = theme === 'dark' ? 'bg-[#111]' : 'bg-white';
+  const cardBorder = theme === 'dark' ? 'border-[#333]' : 'border-gray-200';
+  const inputBg = theme === 'dark' ? 'bg-[#111]' : 'bg-white';
+  const inputBorder = theme === 'dark' ? 'border-[#333]' : 'border-gray-300';
+  const footerBg = theme === 'dark' ? 'bg-[#111]' : 'bg-gray-50';
+  const footerBorder = theme === 'dark' ? 'border-[#333]' : 'border-gray-200';
+  const primaryText = theme === 'dark' ? 'text-gray-100' : 'text-gray-900';
+  const secondaryText = theme === 'dark' ? 'text-[#999]' : 'text-[#555]';
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
+      activationConstraint: { distance: 8 },
     })
   );
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const response = await fetch(`/api/playlists/${id}`);
-        const data = await response.json();
+        const playlistResponse = await fetch(`/api/playlists/${id}`);
+        const playlistData = await playlistResponse.json();
 
-        setPlaylistName(data.name);
+        setPlaylistName(playlistData.name);
+        setNewPlaylistName(playlistData.name);
         setSongs(
-          (data.songs || []).map((song: any) => ({
+          (playlistData.songs || []).map((song: { id: string; filename: string; path: string; title?: string; duration?: string }) => ({
             ...song,
-            title: song.title || song.filename,
+            title: song.filename
+              .replace(/^\d+_?/, "")
+              .replace(/_/g, " ")
+              .replace(/\.(mp3|wav)$/i, ""),
             duration: song.duration || "",
           }))
         );
+
+        const songsResponse = await fetch('/api/songs');
+        const allSongs = await songsResponse.json();
+        setAvailableSongs(allSongs);
       } catch (error) {
         console.error("Fehler beim Laden:", error);
       } finally {
@@ -73,69 +96,197 @@ export default function PlaylistDetail() {
 
   const handlePlayAll = () => {
     if (songs.length > 0) {
-      setCurrentlyPlaying(songs[0].path);
-      setIsPlaying(true);
+      setPlayerSongs(songs);
+      playSong(songs[0].path);
     }
   };
 
-  const togglePlayPause = (songPath: string) => {
-    if (currentlyPlaying === songPath) {
-      if (isPlaying) {
-        audioPlayerRef.current?.audio.current?.pause();
+  const startEditingName = () => {
+    setIsEditingName(true);
+    setNewPlaylistName(playlistName);
+  };
+
+  const cancelEditingName = () => {
+    setIsEditingName(false);
+  };
+
+  const savePlaylistName = async () => {
+    if (!newPlaylistName.trim()) {
+      alert("Playlist-Name darf nicht leer sein");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/playlists/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name: newPlaylistName }),
+      });
+
+      if (response.ok) {
+        setPlaylistName(newPlaylistName);
+        setIsEditingName(false);
       } else {
-        audioPlayerRef.current?.audio.current?.play();
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Fehler beim Speichern");
       }
-      setIsPlaying(!isPlaying);
-    } else {
-      setCurrentlyPlaying(songPath);
-      setIsPlaying(true);
+    } catch (error) {
+      console.error("Fehler beim Speichern des Namens:", error);
+      alert("Fehler beim Speichern: " + (error instanceof Error ? error.message : String(error)));
     }
   };
+
+  const removeSongFromPlaylist = async (songId: string) => {
+    try {
+      const response = await fetch(`/api/playlists/${id}/songs/${songId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      setSongs(prevSongs => prevSongs.filter(song => song.id !== songId));
+    } catch (error) {
+      console.error("Fehler beim Löschen des Songs:", error);
+      alert("Der Song konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.");
+    }
+  };
+
+  const toggleAddSongsModal = () => {
+    setShowAddSongsModal(!showAddSongsModal);
+    setSelectedSongs([]);
+    setSearchTerm("");
+  };
+
+  const toggleSongSelection = (songId: string) => {
+    setSelectedSongs(prev => 
+      prev.includes(songId) 
+        ? prev.filter(id => id !== songId) 
+        : [...prev, songId]
+    );
+  };
+
+  const addSongsToPlaylist = async () => {
+    try {
+      const response = await fetch(`/api/playlists/${id}/songs`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ songIds: selectedSongs }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const addedSongs = await response.json();
+      setSongs(prev => [...prev, ...addedSongs]);
+      setShowAddSongsModal(false);
+      setSelectedSongs([]);
+      setSearchTerm("");
+    } catch (error) {
+      console.error("Fehler beim Hinzufügen der Songs:", error);
+      alert("Songs konnten nicht hinzugefügt werden. Bitte versuchen Sie es erneut.");
+    }
+  };
+
+  const filteredAvailableSongs = availableSongs.filter(song => 
+    !songs.some(s => s.id === song.id) && 
+    (song.filename.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   if (isLoading) return (
-    <div className="min-h-screen p-6 flex items-center justify-center" style={{ background: 'var(--background)', color: 'var(--foreground)' }} suppressHydrationWarning>
+    <div className={`min-h-screen p-6 flex items-center justify-center ${theme === 'dark' ? 'bg-[#0a0a0a]' : 'bg-white'}`}>
       <NavBar />
       <div className="animate-pulse flex flex-col items-center">
-        <FiMusic className="text-4xl mb-4 animate-bounce" style={{ color: 'var(--foreground-alt)' }} />
-        <div className="h-8 w-48 rounded-lg mb-4" style={{ background: 'var(--background-alt)' }}></div>
-        <p style={{ color: 'var(--foreground-alt)' }}>Lade Playlist...</p>
+        <FiMusic className="text-4xl mb-4 animate-bounce" style={{ color: secondaryText }} />
+        <div className={`h-8 w-48 rounded-lg mb-4 ${theme === 'dark' ? 'bg-[#333]' : 'bg-gray-200'}`}></div>
+        <p style={{ color: secondaryText }}>Lade Playlist...</p>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--background)', color: 'var(--foreground)' }} suppressHydrationWarning>
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-[#0a0a0a]' : 'bg-white'}`}>
       <NavBar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 ${theme === 'dark' ? 'bg-[#0a0a0a]' : 'bg-white'}`}>
         <div className="max-w-4xl mx-auto">
           <Link 
             href="/dashboard/playlists" 
-            className="flex items-center gap-1 mb-6 transition-colors hover:text-blue-600 dark:hover:text-blue-400"
-            style={{ color: 'var(--primary)' }}
+            className={`flex items-center gap-1 mb-6 transition-colors hover:text-blue-400 ${secondaryText}`}
           >
             <FiChevronLeft className="text-lg" /> Zurück zu allen Playlists
           </Link>
 
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 p-6 rounded-xl shadow-sm border" style={{ background: 'var(--background-alt)', color: 'var(--foreground)', borderColor: 'var(--border)' }}>
-            <div>
-              <h1 className="text-3xl font-bold" style={{ color: 'var(--foreground)' }}>{playlistName}</h1>
-              <p className="mt-1" style={{ color: 'var(--foreground-alt)' }}>
+          <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 p-6 rounded-xl shadow-sm border ${cardBg} ${cardBorder}`}>
+            <div className="flex-grow">
+              {isEditingName ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newPlaylistName}
+                    onChange={(e) => setNewPlaylistName(e.target.value)}
+                    className={`text-3xl font-bold border-b focus:outline-none focus:border-blue-500 flex-grow ${primaryText} ${inputBg}`}
+                    autoFocus
+                  />
+                  <button 
+                    onClick={savePlaylistName}
+                    className="p-2 text-green-600 hover:text-green-800"
+                    title="Speichern"
+                  >
+                    <FiCheck />
+                  </button>
+                  <button 
+                    onClick={cancelEditingName}
+                    className="p-2 text-red-600 hover:text-red-800"
+                    title="Abbrechen"
+                  >
+                    <FiX />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <h1 className={`text-3xl font-bold ${primaryText}`}>{playlistName}</h1>
+                  <button 
+                    onClick={startEditingName}
+                    className={`p-2 ${secondaryText} hover:text-blue-600`}
+                    title="Playlist umbenennen"
+                  >
+                    <FiEdit2 />
+                  </button>
+                </div>
+              )}
+              <p className={`mt-1 ${secondaryText}`}>
                 {songs.length} {songs.length === 1 ? 'Song' : 'Songs'}
               </p>
             </div>
             
-            <button 
-              onClick={handlePlayAll}
-              disabled={songs.length === 0}
-              className={`flex items-center gap-3 px-6 py-3 rounded-xl font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
-                songs.length === 0 
-                  ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95'
-              }`}
-            >
-              <FiPlay className="text-xl" /> 
-              <span>Alle abspielen</span>
-            </button>
+            <div className="flex gap-3">
+              <button 
+                onClick={toggleAddSongsModal}
+                className="flex items-center gap-2 px-4 py-3 rounded-xl font-medium transition-all bg-green-600 hover:bg-green-700 text-white shadow-md hover:shadow-lg"
+              >
+                <FiPlus className="text-lg" />
+                <span>Songs hinzufügen</span>
+              </button>
+              
+              <button 
+                onClick={handlePlayAll}
+                disabled={songs.length === 0}
+                className={`flex items-center gap-3 px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+                  songs.length === 0 
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95'
+                }`}
+              >
+                <FiPlay className="text-xl" /> 
+                <span>Alle abspielen</span>
+              </button>
+            </div>
           </div>
 
           <DndContext 
@@ -148,9 +299,16 @@ export default function PlaylistDetail() {
             >
               <div className="space-y-3">
                 {songs.length === 0 ? (
-                  <div className="rounded-xl shadow-sm p-8 text-center border" style={{ background: 'var(--background-alt)', color: 'var(--foreground)', borderColor: 'var(--border)' }}>
-                    <FiMusic className="mx-auto text-4xl mb-4" style={{ color: 'var(--foreground-alt)' }} />
-                    <p className="text-lg" style={{ color: 'var(--foreground-alt)' }}>Diese Playlist ist noch leer</p>
+                  <div className={`rounded-xl shadow-sm p-8 text-center border ${cardBg} ${cardBorder}`}>
+                    <FiMusic className={`mx-auto text-4xl mb-4 ${secondaryText}`} />
+                    <p className={`text-lg ${secondaryText}`}>Diese Playlist ist noch leer</p>
+                    <button 
+                      onClick={toggleAddSongsModal}
+                      className="mt-4 flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-green-600 hover:bg-green-700 text-white mx-auto"
+                    >
+                      <FiPlus className="text-lg" />
+                      <span>Songs hinzufügen</span>
+                    </button>
                   </div>
                 ) : (
                   songs.map((song) => (
@@ -158,7 +316,19 @@ export default function PlaylistDetail() {
                       key={song.id}
                       song={song}
                       isPlaying={currentlyPlaying === song.path && isPlaying}
-                      onPlay={() => togglePlayPause(song.path)}
+                      onPlay={() => {
+                        if (currentlyPlaying === song.path && isPlaying) {
+                          pauseSong();
+                        } else {
+                          setPlayerSongs(songs);
+                          playSong(song.path);
+                        }
+                      }}
+                      onRemove={() => removeSongFromPlaylist(song.id)}
+                      cardBg={cardBg}
+                      cardBorder={cardBorder}
+                      primaryText={primaryText}
+                      secondaryText={secondaryText}
                     />
                   ))
                 )}
@@ -166,57 +336,137 @@ export default function PlaylistDetail() {
             </SortableContext>
           </DndContext>
 
-          {currentlyPlaying && (
-            <div className="fixed bottom-0 left-0 right-0 border-t shadow-lg" style={{ background: 'var(--background-alt)', borderColor: 'var(--border)' }}>
-              <div className="max-w-4xl mx-auto px-4">
-                <AudioPlayer
-                  ref={audioPlayerRef}
-                  autoPlay
-                  src={currentlyPlaying}
-                  volume={0.7}
-                  style={{ 
-                    padding: "16px 0",
-                    background: 'var(--background-alt)',
-                    color: 'var(--foreground)',
-                    boxShadow: "none"
-                  }}
-                  className="rounded-none"
-                  showSkipControls={true}
-                  showJumpControls={false}
-                  onClickNext={() => {
-                    if (!currentlyPlaying || songs.length === 0) return;
-                    const currentIndex = songs.findIndex(song => song.path === currentlyPlaying);
-                    const nextIndex = (currentIndex + 1) % songs.length;
-                    setCurrentlyPlaying(songs[nextIndex].path);
-                    setIsPlaying(true);
-                  }}
-                  onClickPrevious={() => {
-                    if (!currentlyPlaying || songs.length === 0) return;
-                    const currentIndex = songs.findIndex(song => song.path === currentlyPlaying);
-                    const prevIndex = (currentIndex - 1 + songs.length) % songs.length;
-                    setCurrentlyPlaying(songs[prevIndex].path);
-                    setIsPlaying(true);
-                  }}
-                  onPlay={() => setIsPlaying(true)}
-                  onPause={() => setIsPlaying(false)}
-                  onEnded={() => {
-                    if (!currentlyPlaying || songs.length === 0) return;
-                    const currentIndex = songs.findIndex(song => song.path === currentlyPlaying);
-                    const nextIndex = (currentIndex + 1) % songs.length;
-                    setCurrentlyPlaying(songs[nextIndex].path);
-                    setIsPlaying(true);
-                  }}
-                />
+          {/* Modal zum Hinzufügen von Songs */}
+            {showAddSongsModal && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div className={`rounded-xl shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col ${cardBg} ${cardBorder}`}>
+                  {/* Header mit Titel und Schließen-Button */}
+                  <div className={`p-6 border-b ${cardBorder}`}>
+                    <div className="flex justify-between items-center">
+                      <h2 className={`text-2xl font-bold ${primaryText}`}>Songs hinzufügen</h2>
+                      <button 
+                        onClick={toggleAddSongsModal}
+                        className={`p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 ${secondaryText}`}
+                      >
+                        <FiX className="text-xl" />
+                      </button>
+                    </div>
+                    
+                    {/* Suchfeld */}
+                    <div className="mt-4 relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <FiSearch className={secondaryText} />
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Nach Songs suchen..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className={`block w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputBorder} ${primaryText} ${inputBg}`}
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Song-Liste */}
+                  <div className="flex-1 overflow-y-auto p-6">
+                    {filteredAvailableSongs.length === 0 ? (
+                      <div className="text-center py-8">
+                        <FiMusic className={`mx-auto text-4xl mb-4 ${secondaryText}`} />
+                        <p className={secondaryText}>
+                          {searchTerm ? 'Keine passenden Songs gefunden' : 'Keine weiteren Songs verfügbar'}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {filteredAvailableSongs.map(song => (
+                          <div 
+                            key={song.id} 
+                            className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                              selectedSongs.includes(song.id) 
+                                ? 'bg-blue-100 dark:bg-blue-900/30' 
+                                : `${cardBg} hover:bg-gray-100 dark:hover:bg-gray-700/50`
+                            } ${cardBorder}`}
+                            onClick={() => toggleSongSelection(song.id)}
+                          >
+                            <div className="flex items-center gap-4">
+                              <input
+                                type="checkbox"
+                                checked={selectedSongs.includes(song.id)}
+                                onChange={() => toggleSongSelection(song.id)}
+                                className={`h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 ${
+                                  theme === 'dark' ? 'dark:border-gray-500' : ''
+                                }`}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              <div className="flex-grow">
+                                <h3 className={`font-medium ${primaryText}`}>
+                                  {song.title}
+                                </h3>
+                                {song.duration && (
+                                  <p className={`text-sm ${secondaryText}`}>
+                                    {song.duration}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Footer mit Buttons */}
+                  <div className={`p-6 border-t flex justify-end gap-3 ${cardBorder}`}>
+                    <button
+                      onClick={toggleAddSongsModal}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                        theme === 'dark' 
+                          ? 'bg-[#333] hover:bg-[#444] text-gray-100' 
+                          : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+                      }`}
+                    >
+                      Abbrechen
+                    </button>
+                    <button
+                      onClick={addSongsToPlaylist}
+                      disabled={selectedSongs.length === 0}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                        selectedSongs.length === 0 
+                          ? `${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} text-gray-500 cursor-not-allowed` 
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      }`}
+                    >
+                      {selectedSongs.length} Songs hinzufügen
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
       </main>
     </div>
   );
 }
 
-function SortableSong({ song, isPlaying, onPlay }: { song: Song; isPlaying: boolean; onPlay: () => void }) {
+function SortableSong({ 
+  song, 
+  isPlaying, 
+  onPlay, 
+  onRemove,
+  cardBg,
+  cardBorder,
+  primaryText,
+  secondaryText
+}: { 
+  song: Song; 
+  isPlaying: boolean; 
+  onPlay: () => void; 
+  onRemove: () => void;
+  cardBg: string;
+  cardBorder: string;
+  primaryText: string;
+  secondaryText: string;
+}) {
   const { 
     attributes, 
     listeners, 
@@ -229,24 +479,23 @@ function SortableSong({ song, isPlaying, onPlay }: { song: Song; isPlaying: bool
   const style = {
     transform: CSS.Transform.toString(transform),
     transition: isDragging ? 'none' : transition,
-    opacity: isDragging ? 0.8 : 1,
-    zIndex: isDragging ? 100 : 'auto',
+    zIndex: isDragging ? 100 : 10,
   };
 
   return (
     <div
       ref={setNodeRef}
-      className={`flex items-center p-4 border rounded-xl transition-all ${
+      className={`flex items-center p-4 rounded-xl transition-all ${
         isPlaying 
           ? "ring-2 ring-blue-500" 
           : "hover:shadow-sm"
-      } ${isDragging ? 'shadow-lg' : ''}`}
+      } ${isDragging ? 'shadow-lg' : ''} ${cardBg} ${cardBorder}`}
       style={{
         ...style,
-        background: isPlaying ? 'rgba(59, 130, 246, 0.08)' : 'var(--background-alt)',
-        borderColor: isPlaying ? 'var(--primary, #3b82f6)' : 'var(--border)',
-        color: isPlaying ? '#1e293b' : 'var(--foreground)', 
         cursor: isDragging ? 'grabbing' : 'pointer',
+        position: 'relative',
+        opacity: 1,
+        backgroundColor: cardBg === 'bg-[#111]' ? 'rgb(17, 17, 17)' : 'rgb(255, 255, 255)'
       }}
     >
       <button 
@@ -254,32 +503,49 @@ function SortableSong({ song, isPlaying, onPlay }: { song: Song; isPlaying: bool
         {...listeners}
         className="mr-4 p-2 rounded-full transition-colors hover:bg-gray-200 dark:hover:bg-gray-700"
         aria-label="Drag handle"
-        style={{ color: 'var(--foreground-alt)' }}
+        style={{ color: secondaryText }}
       >
         <FiList className="text-lg" />
       </button>
       
-      <div className="z-1 flex-grow">
-        <h3 className="font-medium" style={{ color: 'var(--foreground)' }}>
+      <div className="flex-grow">
+        <h3 className={`font-medium ${primaryText}`}>
           {song.title}
         </h3>
         {song.duration && (
-          <p className="text-sm mt-1" style={{ color: isPlaying ? '#475569' : 'var(--foreground-alt)' }}>
+          <p className={`text-sm mt-1 ${secondaryText}`}>
             {song.duration}
           </p>
         )}
       </div>
       
-      <button 
-        onClick={onPlay}
-        className={`z-1 p-3 rounded-full transition-all ${
-          isPlaying ? 'bg-red-100 hover:bg-red-200 text-red-600' : 'bg-green-100 hover:bg-green-200 text-green-600'
-        } dark:${
-          isPlaying ? 'bg-red-900/30 hover:bg-red-900/40 text-red-400' : 'bg-green-900/30 hover:bg-green-900/40 text-green-400'
-        }`}
-      >
-        {isPlaying ? <FiPause className="text-lg" /> : <FiPlay className="text-lg" />}
-      </button>
+      <div className="flex items-center gap-2">
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          className={`p-2 ${secondaryText} hover:text-red-500 transition-colors`}
+          title="Song entfernen"
+        >
+          <FiTrash2 className="text-lg" />
+        </button>
+        
+        {/* Grüner Play / Roter Stop Button */}
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            onPlay();
+          }}
+          className={`p-3 rounded-full transition-all ${
+            isPlaying 
+              ? 'bg-red-100 hover:bg-red-200 text-red-600' 
+              : 'bg-green-100 hover:bg-green-200 text-green-600'
+          }`}
+        >
+          {isPlaying ? <FiPause className="text-lg" /> : <FiPlay className="text-lg" />}
+        </button>
+      </div>
     </div>
   );
 }

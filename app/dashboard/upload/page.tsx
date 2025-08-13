@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import NavBar from "@/app/components/Navigation/Navbar";
 
 export default function UploadPage() {
-  const [files, setFiles] = useState<File[]>([]); // Ausgewählte Dateien
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]); // Hochgeladene Dateien
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [uploadStatus, setUploadStatus] = useState<Record<string, "pending" | "success" | "error">>({});
   const [dragActive, setDragActive] = useState(false);
   const dropZoneRef = useRef<HTMLDivElement>(null);
@@ -23,14 +23,14 @@ export default function UploadPage() {
     if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
       setDragActive(true);
     }
-  }, []);
+  }, [handleDrag]);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     handleDrag(e);
     if (dropZoneRef.current && !dropZoneRef.current.contains(e.relatedTarget as Node)) {
       setDragActive(false);
     }
-  }, []);
+  }, [handleDrag]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     handleDrag(e);
@@ -43,7 +43,7 @@ export default function UploadPage() {
         return [...prev, ...newFiles.filter(f => !existingNames.has(f.name))];
       });
     }
-  }, []);
+  }, [handleDrag]);
 
   const removeFile = (name: string) => {
     setFiles((prev) => prev.filter((f) => f.name !== name));
@@ -70,7 +70,6 @@ export default function UploadPage() {
         }));
 
         if (res.ok) {
-          // Verschiebe Datei in hochgeladene Dateien
           setUploadedFiles((prev) => [...prev, file]);
           setFiles((prev) => prev.filter((f) => f.name !== file.name));
           setUploadStatus((prev) => {
@@ -89,7 +88,7 @@ export default function UploadPage() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--background)', color: 'var(--foreground)' }} suppressHydrationWarning>
       <NavBar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex flex-col items-center">
           {/* Header */}
           <div className="flex flex-col items-center text-center mb-8">

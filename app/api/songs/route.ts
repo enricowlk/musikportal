@@ -1,20 +1,25 @@
-import { readdir } from "fs/promises";
+// app/api/songs/route.ts
 import { NextResponse } from "next/server";
 import path from "path";
+import { promises as fs } from "fs";
+
+const UPLOADS_DIR = path.join(process.cwd(), "public/uploads");
 
 export async function GET() {
-  const uploadDir = path.join(process.cwd(), "public/uploads");
   try {
-    const files = await readdir(uploadDir);
-    const songs = files
-      .filter(file => file.match(/\.(mp3|wav)$/i))
-      .map(file => ({
-        id: file,
-        filename: file,
-        path: `/uploads/${file}`
-      }));
+    const files = await fs.readdir(UPLOADS_DIR);
+    const songs = files.map(file => ({
+      id: file,
+      filename: file,
+      path: `/uploads/${file}`,
+      title: file.replace(/\.[^/.]+$/, ""), // Entfernt Dateierweiterung
+    }));
     return NextResponse.json(songs);
   } catch (error) {
-    return NextResponse.json([], { status: 500 });
+    console.error("Failed to fetch songs:", error); // Now the error is used
+    return NextResponse.json(
+      { error: "Failed to fetch songs" },
+      { status: 500 }
+    );
   }
 }

@@ -25,20 +25,23 @@ export default function Home() {
 }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-900">
-  <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 p-8 rounded shadow dark:shadow-gray-700">
-    <h1 className="text-2xl mb-4 dark:text-white">Musikportal Zugang</h1>
-    <input
-      name="token"
-      type="password"
-      placeholder="Token eingeben"
-      className="border dark:border-gray-600 p-2 w-full mb-4 dark:bg-gray-700 dark:text-white"
-      required
-    />
-    <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white p-2 w-full rounded">
-      Zugang erhalten
-    </button>
-  </form>
+<div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--background)', color: 'var(--foreground)' }} suppressHydrationWarning>
+  <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 z-10">
+    <form onSubmit={handleSubmit} className="p-8 rounded shadow dark:shadow-black" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>
+      <h1 className="text-2xl mb-4" style={{ color: 'var(--foreground)' }}>Musikportal Zugang</h1>
+      <input
+        name="token"
+        type="password"
+        placeholder="Token eingeben"
+        className="border dark:border-gray-600 p-2 w-full mb-4"
+        required
+        style={{ color: 'var(--foreground)' }}
+      />
+      <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white p-2 w-full rounded">
+        Zugang erhalten
+      </button>
+    </form>
 </main>
+</div>
   );
 }
