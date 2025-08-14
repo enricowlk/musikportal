@@ -1,0 +1,47 @@
+[
+  {
+    "id": "1",
+    "name": "Norddeutsche Meisterschaft 2025",
+    "datum": "2025-09-15",
+    "ort": "Hamburg",
+    "veranstalter": "TSC Hamburg",
+    "status": "anstehend",
+    "beschreibung": "Norddeutsche Meisterschaft Jazz und Modern Dance"
+  },
+  {
+    "id": "2", 
+    "name": "Berliner Stadtmeisterschaft",
+    "datum": "2025-08-25",
+    "ort": "Berlin",
+    "veranstalter": "TSV Berlin",
+    "status": "anstehend",
+    "beschreibung": "Stadtmeisterschaft für alle Altersklassen"
+  },
+  {
+    "id": "3",
+    "name": "Bayern Cup 2025",
+    "datum": "2025-10-12",
+    "ort": "München",
+    "veranstalter": "TC München",
+    "status": "anstehend",
+    "beschreibung": "Bayerische Landesmeisterschaft"
+  },
+  {
+    "id": "4",
+    "name": "Rheinland-Pfalz Open",
+    "datum": "2025-07-20",
+    "ort": "Mainz",
+    "veranstalter": "TSG Mainz",
+    "status": "abgeschlossen",
+    "beschreibung": "Offene Meisterschaft Rheinland-Pfalz"
+  },
+  {
+    "id": "5",
+    "name": "Deutsche Jugendmeisterschaft",
+    "datum": "2025-11-08",
+    "ort": "Frankfurt",
+    "veranstalter": "DTV",
+    "status": "anstehend",
+    "beschreibung": "Deutsche Meisterschaft für Jugend und Junioren"
+  }
+]

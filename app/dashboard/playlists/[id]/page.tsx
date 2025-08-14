@@ -216,8 +216,18 @@ export default function PlaylistDetail() {
     }
 
     const addedSongs = await response.json();
+    // Transform the added songs with proper title formatting
+    const transformedAddedSongs = addedSongs.map((song: { id: string; filename: string; path: string; title?: string; duration?: string }) => ({
+      ...song,
+      title: song.filename
+        .replace(/^\d+_?/, "")
+        .replace(/_/g, " ")
+        .replace(/\.(mp3|wav)$/i, ""),
+      duration: song.duration || "",
+    }));
+    
     // Neue Songs am Ende hinzufügen und Reihenfolge speichern
-    const newSongList = [...songs, ...addedSongs];
+    const newSongList = [...songs, ...transformedAddedSongs];
     setSongs(newSongList);
     
     // Reihenfolge in der Datenbank aktualisieren
@@ -267,7 +277,7 @@ export default function PlaylistDetail() {
           >
             <FiChevronLeft className="text-lg group-hover:-translate-x-1 transition-transform" />
             <span className="relative">
-              Zurück zu allen Playlists
+              Zurück
               <span className="absolute left-0 bottom-0 w-0 h-0.5 bg-[#999] group-hover:w-full transition-all duration-300"></span>
             </span>
           </Link>
@@ -378,6 +388,7 @@ export default function PlaylistDetail() {
                       cardBorder={cardBorder}
                       primaryText={primaryText}
                       secondaryText={secondaryText}
+                      theme={theme}
                     />
                   ))
                 )}
@@ -504,7 +515,8 @@ function SortableSong({
   cardBg,
   cardBorder,
   primaryText,
-  secondaryText
+  secondaryText,
+  theme
 }: { 
   song: Song; 
   isPlaying: boolean; 
@@ -514,6 +526,7 @@ function SortableSong({
   cardBorder: string;
   primaryText: string;
   secondaryText: string;
+  theme: string;
 }) {
   const { 
     attributes, 
@@ -545,14 +558,19 @@ function SortableSong({
         opacity: 1,
         backgroundColor: cardBg === 'bg-[#111]' ? 'rgb(17, 17, 17)' : 'rgb(255, 255, 255)',
         border: cardBorder === 'border-[#333]' ? '1px solid #333' : '1px solid #e5e7eb',
-      }}
+        '--hover-shadow': cardBg === 'bg-[#111]' ? '0 10px 25px rgba(255,255,255,0.05)' : '0 10px 25px rgba(0,0,0,0.05)',
+        boxShadow: 'var(--hover-shadow)'
+      } as any}
     >
       <button 
         {...attributes}
         {...listeners}
-        className="p-2 rounded-full transition-colors hover:bg-gray-200 dark:hover:bg-gray-700"
+        className={`p-2 rounded-full transition-colors ${
+          theme === 'dark' 
+            ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-200' 
+            : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
+        }`}
         aria-label="Drag handle"
-        style={{ color: secondaryText }}
       >
         <FiList className="text-lg" />
       </button>

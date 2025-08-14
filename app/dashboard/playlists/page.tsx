@@ -1,22 +1,20 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { FiTrash2, FiSearch, FiPlus } from "react-icons/fi";
+import { FiTrash2, FiSearch, FiPlus, FiCalendar } from "react-icons/fi";
 import NavBar from "@/app/components/Navigation/Navbar";
 import { useTheme } from "@/app/components/Theme/ThemeProvider";
+import { PlaylistWithTurnier } from "@/app/types";
 
-type Playlist = {
-  id: string;
-  name: string;
-  songCount: number;
-  updatedAt: string;
-};
+type Playlist = PlaylistWithTurnier;
 
 type PlaylistApiResponse = {
   id: string;
   name: string;
   songIds: string[];
   createdAt: string;
+  turnierId?: string;
+  turnierName?: string;
 };
 
 export default function PlaylistsPage() {
@@ -42,6 +40,8 @@ export default function PlaylistsPage() {
             name: p.name,
             songCount: p.songIds?.length || 0,
             updatedAt: p.createdAt || new Date().toISOString(),
+            turnierId: p.turnierId,
+            turnierName: p.turnierName,
           }))
         );
       } catch (error) {
@@ -86,7 +86,7 @@ export default function PlaylistsPage() {
   );
 
   // Farben für beide Themes
-  const cardBg = theme === 'dark' ? 'bg-black/20' : 'bg-white';
+  const cardBg = theme === 'dark' ? 'bg-[#111]' : 'bg-white';
   const cardBorder = theme === 'dark' ? 'border-[#333]' : 'border-gray-200';
   const inputBg = theme === 'dark' ? 'bg-black' : 'bg-white';
   const inputBorder = theme === 'dark' ? 'border-[#333]' : 'border-gray-300';
@@ -96,6 +96,7 @@ export default function PlaylistsPage() {
   const badgeBg = theme === 'dark' ? 'bg-[#111] border-[#333] text-gray-200' : 'bg-gray-100 border-gray-300 text-gray-800';
   const dateColor = theme === 'dark' ? 'text-[#999]' : 'text-[#555]';
   const secondaryText = theme === 'dark' ? 'text-[#999]' : 'text-[#555]';
+  const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>
@@ -156,42 +157,59 @@ export default function PlaylistsPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-3">
             {filteredPlaylists.map(playlist => (
               <div 
                 key={playlist.id} 
-                className={`z-1 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 border ${cardBg} ${cardBorder}`}
+                className={`relative z-50 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 border ${cardBg} ${cardBorder}`}
               >
                 <Link 
                   href={`/dashboard/playlists/${playlist.id}`} 
-                  className="block p-6 transition-colors"
+                  className="block"
                 >
-                  <h3 className="font-semibold text-xl mb-1">{playlist.name}</h3>
-                  <div className="flex items-center gap-2 text-sm mb-3">
-                    <span className={`px-2 py-1 rounded-full text-xs border ${badgeBg}`}>
-                      {playlist.songCount} {playlist.songCount === 1 ? 'Song' : 'Songs'}
-                    </span>
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-1.5">
+                        <h3 className="font-bold text-lg text-ellipsis overflow-hidden" style={{ color: 'var(--foreground)' }}>
+                          {playlist.name}
+                        </h3>
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${badgeBg}`}>
+                          {playlist.songCount} {playlist.songCount === 1 ? 'Song' : 'Songs'}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-4 flex-wrap">
+                        {playlist.turnierName && (
+                          <div className={`flex items-center gap-1.5 text-xs ${textSecondary}`}>
+                            <FiCalendar size={14} />
+                            <span className="truncate font-medium">{playlist.turnierName}</span>
+                          </div>
+                        )}
+                        
+                        <span className={`text-xs ${dateColor}`}>
+                          Bearbeitet am {new Date(playlist.updatedAt).toLocaleDateString('de-DE', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center ml-3">
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleDelete(playlist.id);
+                        }}
+                        className={`p-2 ${secondaryText} hover:text-red-500 transition-colors rounded-lg`}
+                        title="Löschen"
+                      >
+                        <FiTrash2 className="text-base" />
+                      </button>
+                    </div>
                   </div>
-                  <p className={`text-xs ${dateColor}`}>
-                    Zuletzt bearbeitet: {new Date(playlist.updatedAt).toLocaleDateString('de-DE', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric'
-                    })}
-                  </p>
                 </Link>
-                <div className={`flex justify-end px-4 py-3 border-t ${footerBg} ${footerBorder}`}>
-                  <button 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleDelete(playlist.id);
-                    }}
-                    className={`p-2 ${secondaryText} hover:text-red-500 transition-colors`}
-                    title="Löschen"
-                  >
-                    <FiTrash2 className="text-lg" />
-                  </button>
-                </div>
               </div>
             ))}
           </div>

@@ -1,10 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { FiMusic, FiX, FiPlay, FiPause, FiPlus, FiSearch } from "react-icons/fi";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FiMusic, FiX, FiPlay, FiPause, FiPlus, FiSearch, FiCalendar } from "react-icons/fi";
 import NavBar from "@/app/components/Navigation/Navbar";
 import { usePlayer } from "@/app/context/PlayerContent";
-import { Song } from '@/app/types';
+import { Song, Turnier } from '@/app/types';
 import { useTheme } from "@/app/components/Theme/ThemeProvider";
 
 export default function CreatePlaylist() {
@@ -12,7 +12,11 @@ export default function CreatePlaylist() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSongs, setSelectedSongs] = useState<string[]>([]);
   const [playlistName, setPlaylistName] = useState("");
+  const [turniere, setTurniere] = useState<Turnier[]>([]);
+  const [selectedTurnier, setSelectedTurnier] = useState<string>("");
+  const [turnierSearch, setTurnierSearch] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { theme } = useTheme();
   const {
     currentlyPlaying, 
@@ -51,16 +55,38 @@ export default function CreatePlaylist() {
     };
   }, [theme, scrollbarStyle]);
 
-  // Lade vorhandene Songs beim Start
+  // Lade vorhandene Songs und Turniere beim Start
   useEffect(() => {
-    const loadSongs = async () => {
-      const res = await fetch("/api/songs");
-      const data = await res.json();
-      setSongs(data);
-      setFilteredSongs(data);
+    const loadData = async () => {
+      try {
+        const [songsRes, turniereRes] = await Promise.all([
+          fetch("/api/songs"),
+          fetch("/api/turniere")
+        ]);
+        
+        const songsData = await songsRes.json();
+        const turniereData = await turniereRes.json();
+        
+        setSongs(songsData);
+        setFilteredSongs(songsData);
+        setTurniere(turniereData);
+      } catch (error) {
+        console.error("Fehler beim Laden der Daten:", error);
+      }
     };
-    loadSongs();
+    loadData();
   }, [setSongs]);
+
+  // Vorauswahl des Turniers aus URL-Parameter
+  useEffect(() => {
+    const turnierParam = searchParams.get('turnier');
+    if (turnierParam && turniere.length > 0) {
+      const turnier = turniere.find(t => t.id === turnierParam);
+      if (turnier) {
+        setSelectedTurnier(turnierParam);
+      }
+    }
+  }, [searchParams, turniere]);
 
   // Filtere Songs basierend auf Suchanfrage
   useEffect(() => {
@@ -98,6 +124,7 @@ export default function CreatePlaylist() {
       body: JSON.stringify({
         name: playlistName,
         songIds: selectedSongs,
+        turnierId: selectedTurnier || undefined,
       }),
     });
 
@@ -105,6 +132,12 @@ export default function CreatePlaylist() {
       router.push("/dashboard/playlists");
     }
   };
+
+  // Gefilterte Turniere für Dropdown
+  const filteredTurniere = turniere.filter(turnier =>
+    turnier.name.toLowerCase().includes(turnierSearch.toLowerCase()) ||
+    turnier.ort.toLowerCase().includes(turnierSearch.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--background)', color: 'var(--foreground)' }} suppressHydrationWarning>
@@ -219,6 +252,36 @@ export default function CreatePlaylist() {
                     placeholder="Meine Playlist"
                     style={{ color: 'var(--foreground)', background: 'var(--background)' }}
                   />
+                </div>
+
+                {/* Turnier-Auswahl */}
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--foreground)' }}>
+                    Turnier (optional)
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={selectedTurnier}
+                      onChange={(e) => setSelectedTurnier(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all appearance-none"
+                      style={{ color: 'var(--foreground)', background: 'var(--background)' }}
+                    >
+                      <option value="">Kein Turnier zuweisen</option>
+                      {turniere
+                        .filter(t => t.status === 'anstehend')
+                        .map(turnier => (
+                          <option key={turnier.id} value={turnier.id}>
+                            {turnier.name} - {new Date(turnier.datum).toLocaleDateString('de-DE')} ({turnier.ort})
+                          </option>
+                        ))}
+                    </select>
+                    <FiCalendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
+                  {selectedTurnier && (
+                    <p className="text-xs mt-1" style={{ color: 'var(--foreground)', opacity: 0.7 }}>
+                      Diese Playlist wird dem ausgewählten Turnier zugeordnet.
+                    </p>
+                  )}
                 </div>
 
                 <div>

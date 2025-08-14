@@ -9,15 +9,17 @@ type Playlist = {
   name: string;
   songIds: string[];
   createdAt: string;
+  turnierId?: string;
 };
 
 type RequestBody = {
   name: string;
   songIds: string[];
+  turnierId?: string;
 };
 
 export async function POST(req: Request): Promise<NextResponse> {
-  const { name, songIds } = (await req.json()) as RequestBody;
+  const { name, songIds, turnierId } = (await req.json()) as RequestBody;
 
   try {
     // Load existing playlists or initialize empty array
@@ -37,6 +39,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       name,
       songIds,
       createdAt: new Date().toISOString(),
+      ...(turnierId && { turnierId }),
     };
 
     playlists.push(newPlaylist);

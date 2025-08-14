@@ -1,8 +1,37 @@
 'use client';
 import { usePathname } from 'next/navigation';
-import { ThemeProvider } from './components/Theme/ThemeProvider';
+import Image from 'next/image';
+import { ThemeProvider, useTheme } from './components/Theme/ThemeProvider';
 import CustomAudioPlayer from './components/Audio/CustomAudioPlayer';
 import { PlayerProvider } from './context/PlayerContent';
+
+function BackgroundLogo() {
+  const { theme } = useTheme();
+  
+  if (theme === 'dark') {
+    return (
+      <Image
+        src="/Logo/dtvlogoWeiß.png"
+        alt="DTV Logo"
+        width={800}
+        height={400}
+        className="mr-13 fixed top-1/2 right-10 -translate-y-1/2 h-[40vh] object-contain pointer-events-none"
+        priority
+      />
+    );
+  } else {
+    return (
+      <Image
+        src="/Logo/dtvlogoSchwarz.png"
+        alt="DTV Logo"
+        width={800}
+        height={400}
+        className="fixed top-1/2 right-10 -translate-y-1/2 h-[30vh] object-contain pointer-events-none"
+        priority
+      />
+    );
+  }
+}
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -10,6 +39,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeProvider>
+      <BackgroundLogo />
       <div className="flex flex-col min-h-screen">
         {isHomePage ? (
           <div className="flex-1">{children}</div>

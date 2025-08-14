@@ -8,21 +8,50 @@ interface Playlist {
   name: string;
   songIds: string[];
   createdAt: string;
+  turnierId?: string;
 }
 
-const DB_PATH = path.join(process.cwd(), "data/playlists.json");
+interface Turnier {
+  id: string;
+  name: string;
+  datum: string;
+  ort: string;
+  veranstalter: string;
+  status: string;
+}
+
+const PLAYLISTS_DB_PATH = path.join(process.cwd(), "data/playlists.json");
+const TURNIERE_DB_PATH = path.join(process.cwd(), "data/turniere.json");
 
 export async function GET() {
   try {
-    const data = await fs.readFile(DB_PATH, "utf-8");
-    const playlists: Playlist[] = JSON.parse(data);
+    const playlistsData = await fs.readFile(PLAYLISTS_DB_PATH, "utf-8");
+    const playlists: Playlist[] = JSON.parse(playlistsData);
     
-    return NextResponse.json(playlists.map((p) => ({
-      id: p.id,
-      name: p.name,
-      songIds: p.songIds || [],
-      createdAt: p.createdAt || new Date().toISOString(),
-    })));
+    // Lade Turniere für Zuordnung
+    let turniere: Turnier[] = [];
+    try {
+      const turniereData = await fs.readFile(TURNIERE_DB_PATH, "utf-8");
+      turniere = JSON.parse(turniereData);
+    } catch {
+      // Falls Turniere nicht geladen werden können, ignorieren wir das
+    }
+    
+    // Erweitere Playlists mit Turnier-Informationen
+    const enrichedPlaylists = playlists.map((playlist) => {
+      const turnier = playlist.turnierId ? turniere.find(t => t.id === playlist.turnierId) : null;
+      
+      return {
+        id: playlist.id,
+        name: playlist.name,
+        songIds: playlist.songIds || [],
+        createdAt: playlist.createdAt || new Date().toISOString(),
+        turnierId: playlist.turnierId,
+        turnierName: turnier?.name,
+      };
+    });
+    
+    return NextResponse.json(enrichedPlaylists);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
     return NextResponse.json(
@@ -45,11 +74,11 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const data = await fs.readFile(DB_PATH, "utf-8");
+    const data = await fs.readFile(PLAYLISTS_DB_PATH, "utf-8");
     const playlists: Playlist[] = JSON.parse(data);
     
     const updated = playlists.filter((p) => p.id !== id);
-    await fs.writeFile(DB_PATH, JSON.stringify(updated, null, 2));
+    await fs.writeFile(PLAYLISTS_DB_PATH, JSON.stringify(updated, null, 2));
     
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
