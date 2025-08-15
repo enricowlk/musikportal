@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import { FiCalendar, FiMapPin, FiUsers, FiMusic, FiPlus, FiArrowLeft, FiClock, FiChevronLeft } from "react-icons/fi";
+import { FiCalendar, FiMapPin, FiUsers, FiMusic, FiPlus, FiClock, FiChevronLeft } from "react-icons/fi";
 import NavBar from "@/app/components/Navigation/Navbar";
 import { useTheme } from "@/app/components/Theme/ThemeProvider";
 import { Turnier, PlaylistWithTurnier } from "@/app/types";
@@ -13,7 +13,6 @@ type TurnierWithPlaylists = Turnier & {
 
 export default function TurnierDetail() {
   const params = useParams();
-  const router = useRouter();
   const { theme } = useTheme();
   const [turnier, setTurnier] = useState<TurnierWithPlaylists | null>(null);
   const [isLoading, setIsLoading] = useState(true);

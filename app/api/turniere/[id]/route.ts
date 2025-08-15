@@ -1,5 +1,5 @@
 // app/api/turniere/[id]/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import { promises as fs } from "fs";
 
@@ -13,16 +13,24 @@ interface Turnier {
   beschreibung?: string;
 }
 
+interface Playlist {
+  id: string;
+  name: string;
+  songIds?: string[];
+  createdAt?: string;
+  turnierId: string;
+}
+
 const TURNIERE_DB_PATH = path.join(process.cwd(), "data/turniere.json");
 const PLAYLISTS_DB_PATH = path.join(process.cwd(), "data/playlists.json");
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
+  
   try {
-    const { id } = params;
-    
     const turniereData = await fs.readFile(TURNIERE_DB_PATH, "utf-8");
     const turniere: Turnier[] = JSON.parse(turniereData);
     
@@ -38,10 +46,10 @@ export async function GET(
     // Lade auch die Playlists für dieses Turnier
     try {
       const playlistsData = await fs.readFile(PLAYLISTS_DB_PATH, "utf-8");
-      const playlists = JSON.parse(playlistsData);
+      const playlists: Playlist[] = JSON.parse(playlistsData);
       const turnierPlaylists = playlists
-        .filter((p: any) => p.turnierId === id)
-        .map((p: any) => ({
+        .filter((p: Playlist) => p.turnierId === id)
+        .map((p: Playlist) => ({
           id: p.id,
           name: p.name,
           songCount: p.songIds?.length || 0,
@@ -66,6 +74,45 @@ export async function GET(
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
     return NextResponse.json(
       { error: "Turnier konnte nicht geladen werden", details: errorMessage },
+      { status: 500 }
+    );
+  }
+}
+
+// Update your PUT handler if you have one
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  await params; // Fix unused variable warning
+  
+  try {
+    const body = await request.json();
+    // Implementation placeholder
+    return NextResponse.json({ message: "PUT not implemented yet", body });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    return NextResponse.json(
+      { error: "PUT request failed", details: errorMessage },
+      { status: 500 }
+    );
+  }
+}
+
+// Update your DELETE handler if you have one
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  await params; // Fix unused variable warning
+  
+  try {
+    // Implementation placeholder
+    return NextResponse.json({ message: "DELETE not implemented yet" });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    return NextResponse.json(
+      { error: "DELETE request failed", details: errorMessage },
       { status: 500 }
     );
   }

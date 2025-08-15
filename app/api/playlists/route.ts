@@ -1,5 +1,5 @@
 // app/api/playlists/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import { promises as fs } from "fs";
 
@@ -9,6 +9,7 @@ interface Playlist {
   songIds: string[];
   createdAt: string;
   turnierId?: string;
+  createdBy?: string;
 }
 
 interface Turnier {
@@ -20,13 +21,45 @@ interface Turnier {
   status: string;
 }
 
+interface TokenData {
+  id: string;
+  name: string;
+  token: string;
+  description: string;
+  active: boolean;
+  createdAt: string;
+}
+
 const PLAYLISTS_DB_PATH = path.join(process.cwd(), "data/playlists.json");
 const TURNIERE_DB_PATH = path.join(process.cwd(), "data/turniere.json");
+const TOKENS_DB_PATH = path.join(process.cwd(), "data/tokens.json");
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Hole Token aus Cookie
+    const token = request.cookies.get('auth-token')?.value;
+    let currentVereinId = null;
+    
+    if (token) {
+      try {
+        const tokensData = await fs.readFile(TOKENS_DB_PATH, "utf-8");
+        const tokens: TokenData[] = JSON.parse(tokensData);
+        const userToken = tokens.find(t => t.token === token && t.active);
+        if (userToken) {
+          currentVereinId = userToken.id;
+        }
+      } catch {
+        // Token-Validierung fehlgeschlagen
+      }
+    }
+    
     const playlistsData = await fs.readFile(PLAYLISTS_DB_PATH, "utf-8");
     const playlists: Playlist[] = JSON.parse(playlistsData);
+    
+    // Filtere Playlists nach Verein (nur eigene Playlists anzeigen)
+    const userPlaylists = currentVereinId 
+      ? playlists.filter(playlist => playlist.createdBy === currentVereinId)
+      : [];
     
     // Lade Turniere für Zuordnung
     let turniere: Turnier[] = [];
@@ -38,7 +71,7 @@ export async function GET() {
     }
     
     // Erweitere Playlists mit Turnier-Informationen
-    const enrichedPlaylists = playlists.map((playlist) => {
+    const enrichedPlaylists = userPlaylists.map((playlist) => {
       const turnier = playlist.turnierId ? turniere.find(t => t.id === playlist.turnierId) : null;
       
       return {

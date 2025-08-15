@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FiMusic, FiX, FiPlay, FiPause, FiPlus, FiSearch, FiCalendar } from "react-icons/fi";
 import NavBar from "@/app/components/Navigation/Navbar";
@@ -7,14 +7,13 @@ import { usePlayer } from "@/app/context/PlayerContent";
 import { Song, Turnier } from '@/app/types';
 import { useTheme } from "@/app/components/Theme/ThemeProvider";
 
-export default function CreatePlaylist() {
+function CreatePlaylistContent() {
   const [filteredSongs, setFilteredSongs] = useState<Song[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSongs, setSelectedSongs] = useState<string[]>([]);
   const [playlistName, setPlaylistName] = useState("");
   const [turniere, setTurniere] = useState<Turnier[]>([]);
   const [selectedTurnier, setSelectedTurnier] = useState<string>("");
-  const [turnierSearch, setTurnierSearch] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { theme } = useTheme();
@@ -132,12 +131,6 @@ export default function CreatePlaylist() {
       router.push("/dashboard/playlists");
     }
   };
-
-  // Gefilterte Turniere für Dropdown
-  const filteredTurniere = turniere.filter(turnier =>
-    turnier.name.toLowerCase().includes(turnierSearch.toLowerCase()) ||
-    turnier.ort.toLowerCase().includes(turnierSearch.toLowerCase())
-  );
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--background)', color: 'var(--foreground)' }} suppressHydrationWarning>
@@ -331,5 +324,13 @@ export default function CreatePlaylist() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function CreatePlaylist() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CreatePlaylistContent />
+    </Suspense>
   );
 }

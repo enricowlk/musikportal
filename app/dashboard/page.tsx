@@ -115,7 +115,7 @@ export default function Dashboard() {
                        style={{ 
                          '--hover-shadow': theme === 'dark' ? '0 10px 25px rgba(255,255,255,0.1)' : '0 10px 25px rgba(0,0,0,0.1)',
                          boxShadow: 'var(--hover-shadow)'
-                       } as any}>
+                       } as React.CSSProperties}>
                     
                     {/* Status Badge */}
                     <div className="flex justify-between items-start mb-3">

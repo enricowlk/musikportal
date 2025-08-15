@@ -91,8 +91,6 @@ export default function PlaylistsPage() {
   const inputBg = theme === 'dark' ? 'bg-black' : 'bg-white';
   const inputBorder = theme === 'dark' ? 'border-[#333]' : 'border-gray-300';
   const inputFocus = theme === 'dark' ? 'focus:ring-gray-500 focus:border-gray-500' : 'focus:ring-gray-400 focus:border-gray-400';
-  const footerBg = theme === 'dark' ? 'bg-[#111]' : 'bg-gray-50';
-  const footerBorder = theme === 'dark' ? 'border-[#333]' : 'border-gray-200';
   const badgeBg = theme === 'dark' ? 'bg-[#111] border-[#333] text-gray-200' : 'bg-gray-100 border-gray-300 text-gray-800';
   const dateColor = theme === 'dark' ? 'text-[#999]' : 'text-[#555]';
   const secondaryText = theme === 'dark' ? 'text-[#999]' : 'text-[#555]';

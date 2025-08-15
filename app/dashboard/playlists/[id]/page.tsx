@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { FiChevronLeft, FiPlay, FiPause, FiMusic, FiList, FiEdit2, FiTrash2, FiX, FiCheck, FiPlus, FiSearch } from "react-icons/fi";
+import { FiChevronLeft, FiPlay, FiPause, FiMusic, FiList, FiEdit2, FiTrash2, FiX, FiCheck, FiPlus, FiSearch, FiCalendar } from "react-icons/fi";
 import Link from "next/link";
 import NavBar from "@/app/components/Navigation/Navbar";
 import { usePlayer } from "@/app/context/PlayerContent";
@@ -20,16 +20,26 @@ type Song = {
 };
 
 export default function PlaylistDetail() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params.id as string; // Fixed this line
   const [songs, setSongs] = useState<Song[]>([]);
   const [availableSongs, setAvailableSongs] = useState<Song[]>([]);
   const [playlistName, setPlaylistName] = useState("");
+  const [turnier, setTurnier] = useState<{
+    id: string;
+    name: string;
+    datum: string;
+    ort: string;
+    veranstalter: string;
+    status: string;
+  } | null>(null); // Neue State für Turnier-Info
   const [isLoading, setIsLoading] = useState(true);
   const [isEditingName, setIsEditingName] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [showAddSongsModal, setShowAddSongsModal] = useState(false);
   const [selectedSongs, setSelectedSongs] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [canEdit, setCanEdit] = useState(false); // Neue State für Berechtigung
 
   const { currentlyPlaying, isPlaying, playSong, pauseSong, setSongs: setPlayerSongs } = usePlayer();
   const { theme } = useTheme();
@@ -56,6 +66,12 @@ export default function PlaylistDetail() {
 
         setPlaylistName(playlistData.name);
         setNewPlaylistName(playlistData.name);
+        
+        // Setze Turnier-Information falls vorhanden
+        if (playlistData.turnier) {
+          setTurnier(playlistData.turnier);
+        }
+        
         setSongs(
           (playlistData.songs || []).map((song: { id: string; filename: string; path: string; title?: string; duration?: string }) => ({
             ...song,
@@ -70,6 +86,12 @@ export default function PlaylistDetail() {
         const songsResponse = await fetch('/api/songs');
         const allSongs = await songsResponse.json();
         setAvailableSongs(allSongs);
+
+        // Prüfe Berechtigungen
+        const permissionsResponse = await fetch(`/api/playlists/${id}/permissions`);
+        const permissionsData = await permissionsResponse.json();
+        setCanEdit(permissionsData.canEdit);
+        
       } catch (error) {
         console.error("Fehler beim Laden:", error);
       } finally {
@@ -310,28 +332,46 @@ export default function PlaylistDetail() {
               ) : (
                 <div className="flex items-center gap-2">
                   <h1 className={`text-3xl font-bold ${primaryText}`}>{playlistName}</h1>
-                  <button 
-                    onClick={startEditingName}
-                    className={`p-2 ${secondaryText} hover:text-blue-600`}
-                    title="Playlist umbenennen"
-                  >
-                    <FiEdit2 />
-                  </button>
+                  {canEdit && (
+                    <button 
+                      onClick={startEditingName}
+                      className={`p-2 ${secondaryText} hover:text-blue-600`}
+                      title="Playlist umbenennen"
+                    >
+                      <FiEdit2 />
+                    </button>
+                  )}
                 </div>
               )}
-              <p className={`mt-1 ${secondaryText}`}>
+              <p className={`mt-1 flex items-center gap-1 ${secondaryText}`}>
+                <FiMusic className="text-sm" />
                 {songs.length} {songs.length === 1 ? 'Song' : 'Songs'}
               </p>
+              
+              {/* Turnier-Information */}
+              {turnier && (
+                <p className={`mt-1 text-sm flex items-center gap-1 ${secondaryText}`}>
+                  <FiCalendar className="text-sm" />
+                  <Link 
+                    href={`/dashboard/turniere/${turnier.id}`}
+                    className={`${primaryText} hover:underline font-medium`}
+                  >
+                    {turnier.name}
+                  </Link>
+                </p>
+              )}
             </div>
             
             <div className="flex gap-3">
-              <button 
-                onClick={toggleAddSongsModal}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium transition-all bg-white/90 bg-[length:0%_100%] hover:bg-[length:100%_100%] bg-gradient-to-r from-white/80 to-[#888] bg-no-repeat transition-[background-size] duration-400 shadow-md hover:shadow-lg`}
-              >
-                <FiPlus className={`text-black text-lg`} />
-                <span className={`text-black`}>Songs hinzufügen</span>
-              </button>
+              {canEdit && (
+                <button 
+                  onClick={toggleAddSongsModal}
+                  className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium transition-all bg-white/90 bg-[length:0%_100%] hover:bg-[length:100%_100%] bg-gradient-to-r from-white/80 to-[#888] bg-no-repeat transition-[background-size] duration-400 shadow-md hover:shadow-lg`}
+                >
+                  <FiPlus className={`text-black text-lg`} />
+                  <span className={`text-black`}>Songs hinzufügen</span>
+                </button>
+              )}
               
               <button 
                 onClick={handlePlayAll}
@@ -349,8 +389,8 @@ export default function PlaylistDetail() {
           </div>
 
           <DndContext 
-            onDragEnd={handleDragEnd}
-            sensors={sensors}
+            onDragEnd={canEdit ? handleDragEnd : () => {}}
+            sensors={canEdit ? sensors : []}
           >
             <SortableContext 
               items={songs}
@@ -360,14 +400,18 @@ export default function PlaylistDetail() {
                 {songs.length === 0 ? (
                   <div className={`rounded-xl shadow-sm p-8 text-center border ${cardBg} ${cardBorder}`}>
                     <FiMusic className={`mx-auto text-4xl mb-4 ${secondaryText}`} />
-                    <p className={`text-lg ${secondaryText}`}>Diese Playlist ist noch leer</p>
-                    <button 
-                      onClick={toggleAddSongsModal}
-                      className="mt-4 flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-green-600 hover:bg-green-700 text-white mx-auto"
-                    >
-                      <FiPlus className="text-lg" />
-                      <span>Songs hinzufügen</span>
-                    </button>
+                    <p className={`text-lg ${secondaryText}`}>
+                      {canEdit ? 'Diese Playlist ist noch leer' : 'Diese Playlist enthält noch keine Songs'}
+                    </p>
+                    {canEdit && (
+                      <button 
+                        onClick={toggleAddSongsModal}
+                        className="mt-4 flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-green-600 hover:bg-green-700 text-white mx-auto"
+                      >
+                        <FiPlus className="text-lg" />
+                        <span>Songs hinzufügen</span>
+                      </button>
+                    )}
                   </div>
                 ) : (
                   songs.map((song) => (
@@ -389,6 +433,7 @@ export default function PlaylistDetail() {
                       primaryText={primaryText}
                       secondaryText={secondaryText}
                       theme={theme}
+                      canEdit={canEdit}
                     />
                   ))
                 )}
@@ -397,7 +442,7 @@ export default function PlaylistDetail() {
           </DndContext>
 
           {/* Modal zum Hinzufügen von Songs */}
-            {showAddSongsModal && (
+            {showAddSongsModal && canEdit && (
               <div className={`fixed inset-0 ${theme === 'dark' ? 'bg-[#0a0a0a]' : 'bg-white'} bg-opacity-50 flex items-center justify-center z-50 p-4`}>
                 <div className={`rounded-xl shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col ${cardBg} ${cardBorder}`}>
                   {/* Header mit Titel und Schließen-Button */}
@@ -516,7 +561,8 @@ function SortableSong({
   cardBorder,
   primaryText,
   secondaryText,
-  theme
+  theme,
+  canEdit
 }: { 
   song: Song; 
   isPlaying: boolean; 
@@ -527,6 +573,7 @@ function SortableSong({
   primaryText: string;
   secondaryText: string;
   theme: string;
+  canEdit: boolean;
 }) {
   const { 
     attributes, 
@@ -560,20 +607,22 @@ function SortableSong({
         border: cardBorder === 'border-[#333]' ? '1px solid #333' : '1px solid #e5e7eb',
         '--hover-shadow': cardBg === 'bg-[#111]' ? '0 10px 25px rgba(255,255,255,0.05)' : '0 10px 25px rgba(0,0,0,0.05)',
         boxShadow: 'var(--hover-shadow)'
-      } as any}
+      } as React.CSSProperties}
     >
-      <button 
-        {...attributes}
-        {...listeners}
-        className={`p-2 rounded-full transition-colors ${
-          theme === 'dark' 
-            ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-200' 
-            : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
-        }`}
-        aria-label="Drag handle"
-      >
-        <FiList className="text-lg" />
-      </button>
+      {canEdit && (
+        <button 
+          {...attributes}
+          {...listeners}
+          className={`p-2 rounded-full transition-colors ${
+            theme === 'dark' 
+              ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-200' 
+              : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
+          }`}
+          aria-label="Drag handle"
+        >
+          <FiList className="text-lg" />
+        </button>
+      )}
 
       {/* Grüner Play / Roter Stop Button */}
         <button 
@@ -602,16 +651,18 @@ function SortableSong({
       </div>
       
       <div className="flex items-center gap-2">
-        <button 
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove();
-          }}
-          className={`p-2 ${secondaryText} hover:text-red-500 transition-colors`}
-          title="Song entfernen"
-        >
-          <FiTrash2 className="text-lg" />
-        </button>
+        {canEdit && (
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            className={`p-2 ${secondaryText} hover:text-red-500 transition-colors`}
+            title="Song entfernen"
+          >
+            <FiTrash2 className="text-lg" />
+          </button>
+        )}
       </div>
     </div>
   );

@@ -14,14 +14,45 @@ interface Playlist {
   id: string;
   name: string;
   songIds: string[];
+  createdBy?: string;
+  turnierId?: string;
+}
+
+interface Turnier {
+  id: string;
+  name: string;
+  datum: string;
+  ort: string;
+  veranstalter: string;
+  status: 'anstehend' | 'laufend' | 'abgeschlossen';
+  beschreibung?: string;
+}
+
+interface TokenData {
+  id: string;
+  name: string;
+  token: string;
+  description: string;
+  active: boolean;
+  createdAt: string;
 }
 
 interface PlaylistResponse {
   name: string;
   songs: Song[];
+  turnier?: {
+    id: string;
+    name: string;
+    datum: string;
+    ort: string;
+    veranstalter: string;
+    status: string;
+  };
 }
 
 const DB_PATH = path.join(process.cwd(), "data/playlists.json");
+const TOKENS_DB_PATH = path.join(process.cwd(), "data/tokens.json");
+const TURNIERE_DB_PATH = path.join(process.cwd(), "data/turniere.json");
 
 async function readPlaylists(): Promise<Playlist[]> {
   const data = await fs.readFile(DB_PATH, "utf-8");
@@ -30,6 +61,19 @@ async function readPlaylists(): Promise<Playlist[]> {
 
 async function writePlaylists(playlists: Playlist[]): Promise<void> {
   await fs.writeFile(DB_PATH, JSON.stringify(playlists, null, 2));
+}
+
+async function getUserFromToken(token: string | undefined): Promise<string | null> {
+  if (!token) return null;
+  
+  try {
+    const tokensData = await fs.readFile(TOKENS_DB_PATH, "utf-8");
+    const tokens: TokenData[] = JSON.parse(tokensData);
+    const userToken = tokens.find(t => t.token === token && t.active);
+    return userToken ? userToken.id : null;
+  } catch {
+    return null;
+  }
 }
 
 // GET
@@ -52,7 +96,33 @@ export async function GET(
       filename: songId,
     }));
 
-    const response: PlaylistResponse = { name: playlist.name, songs };
+    // Lade Turnier-Information falls turnierId vorhanden ist
+    let turnier = null;
+    if (playlist.turnierId) {
+      try {
+        const turniereData = await fs.readFile(TURNIERE_DB_PATH, "utf-8");
+        const turniere: Turnier[] = JSON.parse(turniereData);
+        const foundTurnier = turniere.find(t => t.id === playlist.turnierId);
+        if (foundTurnier) {
+          turnier = {
+            id: foundTurnier.id,
+            name: foundTurnier.name,
+            datum: foundTurnier.datum,
+            ort: foundTurnier.ort,
+            veranstalter: foundTurnier.veranstalter,
+            status: foundTurnier.status
+          };
+        }
+      } catch {
+        // Falls Turnier nicht geladen werden kann, ignorieren
+      }
+    }
+
+    const response: PlaylistResponse = { 
+      name: playlist.name, 
+      songs,
+      ...(turnier && { turnier })
+    };
     return NextResponse.json(response);
   } catch (error: unknown) {
     console.error("GET error:", error);
@@ -76,11 +146,26 @@ export async function PUT(
       );
     }
 
+    // Prüfe Berechtigung
+    const token = request.cookies.get('auth-token')?.value;
+    const currentUser = await getUserFromToken(token);
+    
+    if (!currentUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const playlists = await readPlaylists();
     const playlistIndex = playlists.findIndex((p) => p.id === id);
 
     if (playlistIndex === -1) {
       return NextResponse.json({ error: "Playlist not found" }, { status: 404 });
+    }
+
+    const playlist = playlists[playlistIndex];
+    
+    // Prüfe ob der User der Ersteller ist
+    if (playlist.createdBy !== currentUser) {
+      return NextResponse.json({ error: "Forbidden: You can only edit your own playlists" }, { status: 403 });
     }
 
     playlists[playlistIndex].name = name;
@@ -100,20 +185,35 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    
+    // Prüfe Berechtigung
+    const token = request.cookies.get('auth-token')?.value;
+    const currentUser = await getUserFromToken(token);
+    
+    if (!currentUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    
     const playlists = await readPlaylists();
-    const initialLength = playlists.length;
+    const playlistIndex = playlists.findIndex((p) => p.id === id);
 
-    const filteredPlaylists = playlists.filter((p) => p.id !== id);
-
-    if (filteredPlaylists.length < initialLength) {
-      await writePlaylists(filteredPlaylists);
-      return NextResponse.json({ success: true });
-    } else {
+    if (playlistIndex === -1) {
       return NextResponse.json(
         { error: "Playlist nicht gefunden" },
         { status: 404 }
       );
     }
+    
+    const playlist = playlists[playlistIndex];
+    
+    // Prüfe ob der User der Ersteller ist
+    if (playlist.createdBy !== currentUser) {
+      return NextResponse.json({ error: "Forbidden: You can only delete your own playlists" }, { status: 403 });
+    }
+
+    const filteredPlaylists = playlists.filter((p) => p.id !== id);
+    await writePlaylists(filteredPlaylists);
+    return NextResponse.json({ success: true });
   } catch (error: unknown) {
     console.error("DELETE error:", error);
     return NextResponse.json({ error: "Löschen fehlgeschlagen" }, { status: 500 });
@@ -136,11 +236,26 @@ export async function PATCH(
       );
     }
 
+    // Prüfe Berechtigung
+    const token = request.cookies.get('auth-token')?.value;
+    const currentUser = await getUserFromToken(token);
+    
+    if (!currentUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const playlists = await readPlaylists();
     const playlistIndex = playlists.findIndex((p) => p.id === id);
 
     if (playlistIndex === -1) {
       return NextResponse.json({ error: "Playlist not found" }, { status: 404 });
+    }
+
+    const playlist = playlists[playlistIndex];
+    
+    // Prüfe ob der User der Ersteller ist
+    if (playlist.createdBy !== currentUser) {
+      return NextResponse.json({ error: "Forbidden: You can only edit your own playlists" }, { status: 403 });
     }
 
     playlists[playlistIndex].songIds = songIds;
