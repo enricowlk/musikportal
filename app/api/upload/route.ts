@@ -3,7 +3,7 @@ import { writeFile, mkdir as fsMkdir } from "fs/promises";
 import { NextResponse } from "next/server";
 import path from "path";
 import { parseBuffer } from "music-metadata";
-import { readdir, stat } from "fs/promises";
+import { readdir } from "fs/promises";
 
 interface MkdirOptions {
   recursive?: boolean;
@@ -225,6 +225,14 @@ interface AudioMetadata {
   year: number;
 }
 
+interface ExistingMetadata {
+  title: string;
+  artist: string;
+  originalTitle?: string;
+  originalArtist?: string;
+  duration: number;
+}
+
 async function checkForDuplicates(
   newMetadata: AudioMetadata, 
   uploadDir: string
@@ -310,7 +318,7 @@ async function checkForDuplicates(
 // Exakter Match-Check
 function checkExactMatch(
   newMetadata: AudioMetadata, 
-  existingMetadata: any
+  existingMetadata: ExistingMetadata
 ): boolean {
   // Normalisiere Strings für Vergleich
   const normalize = (str: string | null | undefined): string => {
@@ -333,7 +341,7 @@ function checkExactMatch(
 // Ähnlichkeits-Berechnung (Levenshtein + Weighted)
 function calculateSimilarity(
   newMetadata: AudioMetadata, 
-  existingMetadata: any
+  existingMetadata: ExistingMetadata
 ): number {
   const titleSimilarity = stringSimilarity(
     newMetadata.extractedTitle || newMetadata.originalTitle || '',

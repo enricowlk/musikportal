@@ -1,14 +1,20 @@
 "use client";
 import { useState, useCallback, useRef } from "react";
-import { FiUpload, FiX, FiCheck, FiMusic, FiCloud, FiAlertTriangle, FiCopy } from "react-icons/fi";
+import { FiUpload, FiX, FiCheck, FiMusic, FiCloud, FiCopy } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import NavBar from "@/app/components/Navigation/Navbar";
+
+interface DuplicateInfo {
+  similarity: number;
+  similarFile: string;
+  duplicateType: 'exact' | 'similar' | 'duration';
+}
 
 export default function UploadPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [uploadStatus, setUploadStatus] = useState<Record<string, "pending" | "success" | "error" | "duplicate">>({});
-  const [duplicateInfo, setDuplicateInfo] = useState<Record<string, any>>({});
+  const [duplicateInfo, setDuplicateInfo] = useState<Record<string, DuplicateInfo>>({});
   const [dragActive, setDragActive] = useState(false);
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -220,7 +226,7 @@ export default function UploadPage() {
                                     <span className="font-medium">Duplikat gefunden ({duplicateInfo[file.name].similarity}% ähnlich)</span>
                                   </div>
                                   <div className="text-yellow-700 mt-1">
-                                    Ähnliche Datei: "{duplicateInfo[file.name].similarFile}"
+                                    Ähnliche Datei: &quot;{duplicateInfo[file.name].similarFile}&quot;
                                   </div>
                                   <div className="text-yellow-600 text-xs mt-1">
                                     Typ: {duplicateInfo[file.name].duplicateType === 'exact' ? 'Exakte Übereinstimmung' : 
