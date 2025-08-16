@@ -52,15 +52,6 @@ export async function POST(req: Request) {
         path: '/'
       });
       
-      // Debug: Zusätzliches Cookie für Debugging
-      response.cookies.set("debug-auth", "set", {
-        httpOnly: false, // Damit es im Browser sichtbar ist
-        secure: false,
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24,
-        path: '/'
-      });
-      
       return response;
     }
     
