@@ -35,8 +35,9 @@ export async function POST(req: Request) {
       response.cookies.set("auth-token", token, { 
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 60 * 60 * 24 * 30 // 30 Tage
+        sameSite: 'lax', // Geändert von 'strict' zu 'lax' für bessere macOS Kompatibilität
+        maxAge: 60 * 60 * 24 * 30, // 30 Tage
+        path: '/' // Explizit setzen für bessere Browser-Kompatibilität
       });
       
       response.cookies.set("verein-info", JSON.stringify({
@@ -45,8 +46,9 @@ export async function POST(req: Request) {
       }), { 
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 60 * 60 * 24 * 30 // 30 Tage
+        sameSite: 'lax', // Geändert von 'strict' zu 'lax' für bessere macOS Kompatibilität
+        maxAge: 60 * 60 * 24 * 30, // 30 Tage
+        path: '/' // Explizit setzen für bessere Browser-Kompatibilität
       });
       
       return response;

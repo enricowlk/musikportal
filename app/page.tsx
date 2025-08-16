@@ -31,7 +31,19 @@ export default function Home() {
         setVereinName(data.verein);
         // Kurz den Vereinsnamen anzeigen, dann weiterleiten
         setTimeout(() => {
-          router.push("/dashboard");
+          // Fallback für macOS/Safari: versuche window.location falls router.push nicht funktioniert
+          try {
+            router.push("/dashboard");
+            // Zusätzlicher Fallback nach kurzer Zeit
+            setTimeout(() => {
+              if (window.location.pathname !== "/dashboard") {
+                window.location.href = "/dashboard";
+              }
+            }, 500);
+          } catch {
+            // Direkte Navigation als Fallback
+            window.location.href = "/dashboard";
+          }
         }, 1500);
       } else {
         setError(data.error || "Ungültiger Token. Bitte wenden Sie sich an Ihren Vereinsvorstand.");
@@ -70,6 +82,24 @@ export default function Home() {
             <div className="mb-4 p-3 rounded bg-green-100 border border-green-300 text-green-700 text-sm text-center">
               ✓ Willkommen, {vereinName}! <br />
               <span className="text-xs">Weiterleitung...</span>
+              <br />
+              <button 
+                onClick={() => {
+                  try {
+                    router.push("/dashboard");
+                    setTimeout(() => {
+                      if (window.location.pathname !== "/dashboard") {
+                        window.location.href = "/dashboard";
+                      }
+                    }, 200);
+                  } catch {
+                    window.location.href = "/dashboard";
+                  }
+                }}
+                className="mt-2 text-xs underline hover:no-underline text-green-800"
+              >
+                Hier klicken falls keine automatische Weiterleitung erfolgt
+              </button>
             </div>
           )}
 
