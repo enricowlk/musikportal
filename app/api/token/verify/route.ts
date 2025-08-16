@@ -32,12 +32,13 @@ export async function POST(req: Request) {
       });
       
       // Setze sowohl den Token als auch die Verein-Info als Cookie
+      // Verwende verschiedene Cookie-Einstellungen für bessere Kompatibilität
       response.cookies.set("auth-token", token, { 
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax', // Geändert von 'strict' zu 'lax' für bessere macOS Kompatibilität
+        secure: false, // Deaktiviert für lokale Entwicklung
+        sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 30, // 30 Tage
-        path: '/' // Explizit setzen für bessere Browser-Kompatibilität
+        path: '/'
       });
       
       response.cookies.set("verein-info", JSON.stringify({
@@ -45,10 +46,19 @@ export async function POST(req: Request) {
         name: validToken.name
       }), { 
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax', // Geändert von 'strict' zu 'lax' für bessere macOS Kompatibilität
+        secure: false, // Deaktiviert für lokale Entwicklung
+        sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 30, // 30 Tage
-        path: '/' // Explizit setzen für bessere Browser-Kompatibilität
+        path: '/'
+      });
+      
+      // Debug: Zusätzliches Cookie für Debugging
+      response.cookies.set("debug-auth", "set", {
+        httpOnly: false, // Damit es im Browser sichtbar ist
+        secure: false,
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24,
+        path: '/'
       });
       
       return response;

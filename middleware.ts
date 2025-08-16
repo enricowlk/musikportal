@@ -2,14 +2,28 @@ import { NextResponse, NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get('auth-token')?.value;
+  const debugAuth = request.cookies.get('debug-auth')?.value;
+  
+  console.log('Middleware Debug:', {
+    path: request.nextUrl.pathname,
+    hasAuthToken: !!token,
+    hasDebugAuth: !!debugAuth,
+    userAgent: request.headers.get('user-agent')?.includes('Mac') ? 'Mac' : 'Other',
+    cookieNames: request.cookies.getAll().map(c => c.name)
+  });
   
   if (!token) {
-    return NextResponse.redirect(new URL('/', request.url));
+    console.log('No auth token found, redirecting to home');
+    const redirectResponse = NextResponse.redirect(new URL('/', request.url));
+    // Lösche alle Auth-Cookies beim Redirect
+    redirectResponse.cookies.delete('auth-token');
+    redirectResponse.cookies.delete('verein-info');
+    redirectResponse.cookies.delete('debug-auth');
+    return redirectResponse;
   }
   
   try {
     // Verwende die interne API Route für Token-Validierung
-    // Dies ist Edge Runtime kompatibel
     const baseUrl = request.nextUrl.origin;
     const response = await fetch(`${baseUrl}/api/token/validate`, {
       method: 'POST',
@@ -20,18 +34,26 @@ export async function middleware(request: NextRequest) {
     });
     
     if (!response.ok) {
+      console.log('Token validation failed');
       // Token ungültig - lösche Cookies und redirect zur Startseite
       const redirectResponse = NextResponse.redirect(new URL('/', request.url));
       redirectResponse.cookies.delete('auth-token');
       redirectResponse.cookies.delete('verein-info');
+      redirectResponse.cookies.delete('debug-auth');
       return redirectResponse;
     }
     
+    console.log('Token validation successful');
     return NextResponse.next();
     
-  } catch {
+  } catch (error) {
+    console.log('Token validation error:', error);
     // Bei Fehlern redirect zur Startseite
-    return NextResponse.redirect(new URL('/', request.url));
+    const redirectResponse = NextResponse.redirect(new URL('/', request.url));
+    redirectResponse.cookies.delete('auth-token');
+    redirectResponse.cookies.delete('verein-info');
+    redirectResponse.cookies.delete('debug-auth');
+    return redirectResponse;
   }
 }
 

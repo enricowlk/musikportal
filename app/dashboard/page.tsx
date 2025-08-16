@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FiCalendar, FiMapPin, FiUsers, FiSearch, FiClock } from "react-icons/fi";
 import NavBar from "../components/Navigation/Navbar";
 import { useTheme } from "../components/Theme/ThemeProvider";
+import AuthGuard from "../components/Auth/AuthGuard";
 import { Turnier } from "../types";
 
 export default function Dashboard() {
@@ -61,9 +62,10 @@ export default function Dashboard() {
   const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--background)', color: 'var(--foreground)' }} suppressHydrationWarning>
-      <NavBar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <AuthGuard>
+      <div className="min-h-screen" style={{ background: 'var(--background)', color: 'var(--foreground)' }} suppressHydrationWarning>
+        <NavBar />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>Dashboard</h1>
           <p className={textSecondary}>Übersicht über anstehende Turniere</p>
@@ -168,5 +170,6 @@ export default function Dashboard() {
         )}
       </main>
     </div>
+    </AuthGuard>
   );
 }

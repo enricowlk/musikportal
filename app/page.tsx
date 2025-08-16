@@ -29,6 +29,18 @@ export default function Home() {
       
       if (res.ok && data.success) {
         setVereinName(data.verein);
+        
+        // Zusätzlich auch in localStorage speichern als Fallback für macOS
+        try {
+          localStorage.setItem('auth-token', token);
+          localStorage.setItem('verein-info', JSON.stringify({
+            id: data.vereinId,
+            name: data.verein
+          }));
+        } catch (e) {
+          console.warn('localStorage not available:', e);
+        }
+        
         // Kurz den Vereinsnamen anzeigen, dann weiterleiten
         setTimeout(() => {
           // Fallback für macOS/Safari: versuche window.location falls router.push nicht funktioniert
