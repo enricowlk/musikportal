@@ -154,11 +154,11 @@ export default function CustomAudioPlayer({ className }: CustomAudioPlayerProps)
           />
         </div>
         <div className="truncate">
-          <div className={`font-medium text-sm sm:text-md truncate ${primaryText}`} title={currentSong?.filename}>
-            {currentSong?.filename
-              .replace(/^\d+_?/, "")
-              .replace(/_/g, " ")
-              .replace(/\.(mp3|wav)$/i, "") || 'Kein Titel'}
+          <div className={`font-medium text-sm sm:text-md truncate ${primaryText}`} title={currentSong?.title}>
+            {currentSong?.title || 'Kein Titel'}
+          </div>
+          <div className={`text-xs sm:text-sm truncate ${secondaryText}`} title={currentSong?.artist}>
+            {currentSong?.artist || 'Unbekannter Künstler'}
           </div>
         </div>
       </div>

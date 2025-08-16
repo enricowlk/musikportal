@@ -1,13 +1,14 @@
 "use client";
 import { useState, useCallback, useRef } from "react";
-import { FiUpload, FiX, FiCheck, FiMusic, FiCloud } from "react-icons/fi";
+import { FiUpload, FiX, FiCheck, FiMusic, FiCloud, FiAlertTriangle, FiCopy } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import NavBar from "@/app/components/Navigation/Navbar";
 
 export default function UploadPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [uploadStatus, setUploadStatus] = useState<Record<string, "pending" | "success" | "error">>({});
+  const [uploadStatus, setUploadStatus] = useState<Record<string, "pending" | "success" | "error" | "duplicate">>({});
+  const [duplicateInfo, setDuplicateInfo] = useState<Record<string, any>>({});
   const [dragActive, setDragActive] = useState(false);
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -75,12 +76,13 @@ export default function UploadPage() {
           body: formData,
         });
 
-        setUploadStatus((prev) => ({
-          ...prev,
-          [file.name]: res.ok ? "success" : "error",
-        }));
+        const responseData = await res.json();
 
         if (res.ok) {
+          setUploadStatus((prev) => ({
+            ...prev,
+            [file.name]: "success",
+          }));
           setUploadedFiles((prev) => [...prev, file]);
           setFiles((prev) => prev.filter((f) => f.name !== file.name));
           setUploadStatus((prev) => {
@@ -88,6 +90,21 @@ export default function UploadPage() {
             delete copy[file.name];
             return copy;
           });
+        } else if (res.status === 409) {
+          // Duplikat gefunden
+          setUploadStatus((prev) => ({
+            ...prev,
+            [file.name]: "duplicate",
+          }));
+          setDuplicateInfo((prev) => ({
+            ...prev,
+            [file.name]: responseData
+          }));
+        } else {
+          setUploadStatus((prev) => ({
+            ...prev,
+            [file.name]: "error",
+          }));
         }
       }
       router.refresh();
@@ -189,6 +206,29 @@ export default function UploadPage() {
                             <p className="font-medium truncate" style={{ color: 'var(--foreground)' }}>{file.name}</p>
                             <div className="text-xs" style={{ color: 'var(--foreground-alt)' }}>
                               {(file.size / (1024 * 1024)).toFixed(2)} MB
+                              {/* Status-Anzeige */}
+                              {uploadStatus[file.name] === "pending" && (
+                                <span className="ml-2 text-blue-500">Wird hochgeladen...</span>
+                              )}
+                              {uploadStatus[file.name] === "error" && (
+                                <span className="ml-2 text-red-500">Fehler beim Upload</span>
+                              )}
+                              {uploadStatus[file.name] === "duplicate" && duplicateInfo[file.name] && (
+                                <div className="mt-1 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                                  <div className="flex items-center gap-1 text-yellow-800">
+                                    <FiCopy size={12} />
+                                    <span className="font-medium">Duplikat gefunden ({duplicateInfo[file.name].similarity}% ähnlich)</span>
+                                  </div>
+                                  <div className="text-yellow-700 mt-1">
+                                    Ähnliche Datei: "{duplicateInfo[file.name].similarFile}"
+                                  </div>
+                                  <div className="text-yellow-600 text-xs mt-1">
+                                    Typ: {duplicateInfo[file.name].duplicateType === 'exact' ? 'Exakte Übereinstimmung' : 
+                                          duplicateInfo[file.name].duplicateType === 'similar' ? 'Ähnlicher Inhalt' : 
+                                          'Ähnliche Dauer'}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>

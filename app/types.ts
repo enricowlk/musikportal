@@ -2,6 +2,17 @@ export type Song = {
   id: string;
   filename: string;
   path: string;
+  // Erweiterte Metadaten
+  title: string;
+  artist: string;
+  album?: string;
+  duration?: number;
+  genre?: string;
+  // Zusätzliche Metadaten-Informationen
+  extractedTitle?: string;
+  extractedArtist?: string;
+  originalTitle?: string | null;
+  originalArtist?: string | null;
 };
 
 export type Turnier = {

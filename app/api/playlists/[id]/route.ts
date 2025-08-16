@@ -3,11 +3,15 @@ import { NextResponse } from "next/server";
 import path from "path";
 import { promises as fs } from "fs";
 import type { NextRequest } from "next/server";
+import { parseBuffer } from "music-metadata";
 
 interface Song {
   id: string;
   path: string;
   filename: string;
+  title: string;
+  artist: string;
+  duration: number;
 }
 
 interface Playlist {
@@ -53,6 +57,54 @@ interface PlaylistResponse {
 const DB_PATH = path.join(process.cwd(), "data/playlists.json");
 const TOKENS_DB_PATH = path.join(process.cwd(), "data/tokens.json");
 const TURNIERE_DB_PATH = path.join(process.cwd(), "data/turniere.json");
+const UPLOADS_DIR = path.join(process.cwd(), "public/uploads");
+
+// Hilfsfunktionen für Metadaten-Extraktion (übereinstimmend mit songs/route.ts)
+function extractTitleFromFilename(filename: string): string {
+  let title = filename.replace(/\.(mp3|wav|m4a|flac)$/i, '');
+  title = title.replace(/^\d+_/, '');
+  title = title.replace(/[_-]+/g, ' ');
+  title = title.replace(/\s+/g, ' ').trim();
+  title = title.split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+  return title || 'Unbekannter Titel';
+}
+
+function extractArtistFromFilename(filename: string): { artist: string; track: string } {
+  let cleanName = filename.replace(/\.(mp3|wav|m4a|flac)$/i, '');
+  cleanName = cleanName.replace(/^\d+_/, '');
+  
+  const separators = [' - ', '_-_', ' _ ', '-'];
+  
+  for (const separator of separators) {
+    if (cleanName.includes(separator)) {
+      const parts = cleanName.split(separator);
+      if (parts.length >= 2) {
+        const artist = parts[0].replace(/[_-]/g, ' ').trim();
+        const track = parts.slice(1).join(' - ').replace(/[_-]/g, ' ').trim();
+        
+        return {
+          artist: formatName(artist),
+          track: formatName(track)
+        };
+      }
+    }
+  }
+  
+  return {
+    artist: 'Unbekannter Künstler',
+    track: formatName(cleanName.replace(/[_-]/g, ' '))
+  };
+}
+
+function formatName(name: string): string {
+  return name.replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
 
 async function readPlaylists(): Promise<Playlist[]> {
   const data = await fs.readFile(DB_PATH, "utf-8");
@@ -90,11 +142,45 @@ export async function GET(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const songs: Song[] = playlist.songIds.map((songId) => ({
-      id: songId,
-      path: `/uploads/${encodeURIComponent(songId)}`, // Enkodiere Dateinamen für URL-Sicherheit
-      filename: songId,
-    }));
+    const songs: Song[] = await Promise.all(
+      playlist.songIds.map(async (songId) => {
+        try {
+          // Metadaten aus der Datei lesen
+          const filePath = path.join(UPLOADS_DIR, songId);
+          const fileBuffer = await fs.readFile(filePath);
+          const metadata = await parseBuffer(fileBuffer);
+
+          // Intelligente Metadaten-Extraktion
+          const extractedTitle = extractTitleFromFilename(songId);
+          const artistInfo = extractArtistFromFilename(songId);
+
+          return {
+            id: songId,
+            path: `/uploads/${encodeURIComponent(songId)}`,
+            filename: songId,
+            // Verwende die track-Eigenschaft als bevorzugten Titel falls verfügbar
+            title: metadata.common.title || artistInfo.track || extractedTitle || songId.replace(/\.[^/.]+$/, ""),
+            artist: metadata.common.artist || artistInfo.artist || "Unbekannter Künstler",
+            duration: metadata.format?.duration || 0,
+          };
+        } catch (error) {
+          console.warn(`Could not parse metadata for ${songId}:`, error);
+          // Fallback: Nur Dateiname-basierte Extraktion
+          const extractedTitle = extractTitleFromFilename(songId);
+          const artistInfo = extractArtistFromFilename(songId);
+          
+          return {
+            id: songId,
+            path: `/uploads/${encodeURIComponent(songId)}`,
+            filename: songId,
+            // Verwende die track-Eigenschaft als bevorzugten Titel falls verfügbar
+            title: artistInfo.track || extractedTitle || songId.replace(/\.[^/.]+$/, ""),
+            artist: artistInfo.artist || "Unbekannter Künstler",
+            duration: 0,
+          };
+        }
+      })
+    );
 
     // Lade Turnier-Information falls turnierId vorhanden ist
     let turnier = null;

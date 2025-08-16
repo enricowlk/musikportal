@@ -10,14 +10,7 @@ import Link from "next/link";
 import NavBar from "@/app/components/Navigation/Navbar";
 import { usePlayer } from "@/app/context/PlayerContent";
 import { useTheme } from "@/app/components/Theme/ThemeProvider";
-
-type Song = {
-  id: string;
-  filename: string;
-  path: string;
-  title: string;
-  duration?: string;
-};
+import { Song } from "@/app/types";
 
 export default function PlaylistDetail() {
   const params = useParams();
@@ -73,13 +66,13 @@ export default function PlaylistDetail() {
         }
         
         setSongs(
-          (playlistData.songs || []).map((song: { id: string; filename: string; path: string; title?: string; duration?: string }) => ({
+          (playlistData.songs || []).map((song: Song) => ({
             ...song,
-            title: song.filename
+            title: song.title || song.filename
               .replace(/^\d+_?/, "")
               .replace(/_/g, " ")
               .replace(/\.(mp3|wav)$/i, ""),
-            duration: song.duration || "",
+            artist: song.artist || 'Unbekannter Künstler',
           }))
         );
 
@@ -238,18 +231,10 @@ export default function PlaylistDetail() {
     }
 
     const addedSongs = await response.json();
-    // Transform the added songs with proper title formatting
-    const transformedAddedSongs = addedSongs.map((song: { id: string; filename: string; path: string; title?: string; duration?: string }) => ({
-      ...song,
-      title: song.filename
-        .replace(/^\d+_?/, "")
-        .replace(/_/g, " ")
-        .replace(/\.(mp3|wav)$/i, ""),
-      duration: song.duration || "",
-    }));
     
+    // Die API gibt bereits die korrekt verarbeiteten Songs mit title/artist zurück
     // Neue Songs am Ende hinzufügen und Reihenfolge speichern
-    const newSongList = [...songs, ...transformedAddedSongs];
+    const newSongList = [...songs, ...addedSongs];
     setSongs(newSongList);
     
     // Reihenfolge in der Datenbank aktualisieren
@@ -274,7 +259,9 @@ export default function PlaylistDetail() {
 
   const filteredAvailableSongs = availableSongs.filter(song => 
     !songs.some(s => s.id === song.id) && 
-    (song.filename.toLowerCase().includes(searchTerm.toLowerCase()))
+    (song.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     (song.title && song.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+     (song.artist && song.artist.toLowerCase().includes(searchTerm.toLowerCase())))
   );
 
   if (isLoading) return (
@@ -488,8 +475,8 @@ export default function PlaylistDetail() {
                             key={song.id} 
                             className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                               selectedSongs.includes(song.id) 
-                                ? 'dark:hover:bg-[#999]' 
-                                : `${cardBg} dark:hover:bg-[#999]`
+                                ? 'dark:hover:bg-[#777]' 
+                                : `${cardBg} dark:hover:bg-[#777]`
                             } ${cardBorder}`}
                             style={{
                               borderColor: selectedSongs.includes(song.id) ? 'var(--border)' : 'var(--border)',
@@ -509,8 +496,11 @@ export default function PlaylistDetail() {
                               />
                               <div className="flex-grow">
                                 <h3 className={`font-medium ${primaryText}`}>
-                                  {song.filename.replace(/^\d+_?/, "").replace(/_/g, " ").replace(/\.(mp3|wav)$/i, "")}
+                                  {song.title || song.filename.replace(/^\d+_?/, "").replace(/_/g, " ").replace(/\.(mp3|wav)$/i, "")}
                                 </h3>
+                                <p className={`text-sm ${secondaryText}`}>
+                                  {song.artist || 'Unbekannter Künstler'}
+                                </p>
                               </div>
                             </div>
                           </div>
@@ -640,14 +630,12 @@ function SortableSong({
         </button>
       
       <div className="flex-grow">
-        <h3 className={`font-medium ${primaryText}`}>
+        <div className={`font-medium truncate ${primaryText}`}>
           {song.title}
-        </h3>
-        {song.duration && (
-          <p className={`text-sm mt-1 ${secondaryText}`}>
-            {song.duration}
-          </p>
-        )}
+        </div>
+        <div className={`text-sm ${secondaryText}`}>
+          {song.artist}
+        </div>
       </div>
       
       <div className="flex items-center gap-2">

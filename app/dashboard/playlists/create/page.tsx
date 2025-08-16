@@ -97,7 +97,9 @@ function CreatePlaylistContent() {
           .toLowerCase()
           .replace(/^\d+_/, "")
           .replace(/\.(mp3|wav)$/i, "")
-          .includes(searchQuery.toLowerCase())
+          .includes(searchQuery.toLowerCase()) ||
+        (song.title && song.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (song.artist && song.artist.toLowerCase().includes(searchQuery.toLowerCase()))
       );
       setFilteredSongs(filtered);
     }
@@ -191,9 +193,14 @@ function CreatePlaylistContent() {
                       onClick={() => toggleSongSelection(song.id)}
                     >
                       <div className="flex justify-between items-center">
-                        <span className="font-medium truncate" style={{ color: 'var(--foreground)' }}>
-                          {song.filename.replace(/^\d+_?/, "").replace(/_/g, " ").replace(/\.(mp3|wav)$/i, "")}
-                        </span>
+                        <div className="truncate">
+                          <div className="font-medium truncate" style={{ color: 'var(--foreground)' }}>
+                            {song.title || song.filename.replace(/^\d+_?/, "").replace(/_/g, " ").replace(/\.(mp3|wav)$/i, "")}
+                          </div>
+                          <div className="text-sm" style={{ color: 'var(--foreground-alt)' }}>
+                            {song.artist || 'Unbekannter Künstler'}
+                          </div>
+                        </div>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -290,9 +297,14 @@ function CreatePlaylistContent() {
                         const song = songs.find(s => s.id === songId);
                         return song ? (
                           <div key={songId} className="flex items-center justify-between p-3 rounded-lg border border-gray-700/50" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>
-                            <span className="font-medium" style={{ color: 'var(--foreground)' }}>
-                              {song.filename.replace(/^\d+_/, "").replace(/\.(mp3|wav)$/i, "")}
-                            </span>
+                            <div>
+                              <div className="font-medium" style={{ color: 'var(--foreground)' }}>
+                                {song.title || song.filename.replace(/^\d+_/, "").replace(/\.(mp3|wav)$/i, "")}
+                              </div>
+                              <div className="text-sm" style={{ color: 'var(--foreground-alt)' }}>
+                                {song.artist || 'Unbekannter Künstler'}
+                              </div>
+                            </div>
                             <button
                               onClick={() => toggleSongSelection(songId)}
                               className="p-2 rounded-full hover:bg-red-400 transition-colors"
