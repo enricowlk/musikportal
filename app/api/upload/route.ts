@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       filename: filename,
-      path: `/uploads/${filename}`,
+      path: `/uploads/${encodeURIComponent(filename)}`, // Enkodiere Dateinamen für URL-Sicherheit
     });
   } catch (error) {
     console.error("Upload error:", error);

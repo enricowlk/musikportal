@@ -92,7 +92,7 @@ export async function GET(
 
     const songs: Song[] = playlist.songIds.map((songId) => ({
       id: songId,
-      path: `/uploads/${songId}`,
+      path: `/uploads/${encodeURIComponent(songId)}`, // Enkodiere Dateinamen für URL-Sicherheit
       filename: songId,
     }));
 

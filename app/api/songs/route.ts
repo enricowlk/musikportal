@@ -11,12 +11,12 @@ export async function GET() {
     const songs = files.map(file => ({
       id: file,
       filename: file,
-      path: `/uploads/${file}`,
+      path: `/uploads/${encodeURIComponent(file)}`, // Enkodiere Dateinamen für URL-Sicherheit
       title: file.replace(/\.[^/.]+$/, ""), // Entfernt Dateierweiterung
     }));
     return NextResponse.json(songs);
   } catch (error) {
-    console.error("Failed to fetch songs:", error); // Now the error is used
+    console.error("Failed to fetch songs:", error);
     return NextResponse.json(
       { error: "Failed to fetch songs" },
       { status: 500 }

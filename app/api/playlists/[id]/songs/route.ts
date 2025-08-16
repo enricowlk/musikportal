@@ -53,7 +53,7 @@ export async function POST(
     // Zurückgegebene Songs erstellen
     const addedSongs: Song[] = newSongIds.map((id) => ({
       id,
-      path: `/uploads/${id}`,
+      path: `/uploads/${encodeURIComponent(id)}`, // Enkodiere Dateinamen für URL-Sicherheit
       filename: id,
       title: id.replace(/\.[^/.]+$/, ""),
     }));

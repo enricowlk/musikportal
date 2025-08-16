@@ -15,7 +15,7 @@ function BackgroundLogo() {
         alt="DTV Logo"
         width={800}
         height={400}
-        className="mr-13 fixed top-1/2 right-10 -translate-y-1/2 h-[40vh] object-contain pointer-events-none"
+        className=" fixed top-1/2 right-10 -translate-y-1/2 h-[35vh] object-contain pointer-events-none"
         priority
       />
     );
