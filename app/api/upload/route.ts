@@ -2,6 +2,7 @@
 import { writeFile, mkdir as fsMkdir } from "fs/promises";
 import { NextResponse } from "next/server";
 import path from "path";
+import { parseBuffer } from "music-metadata";
 
 interface MkdirOptions {
   recursive?: boolean;
@@ -29,6 +30,15 @@ export async function POST(req: Request) {
       );
     }
 
+    // Dateigröße validieren (max 20MB)
+    const maxSize = 20 * 1024 * 1024; // 20MB in bytes
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { error: "Datei ist zu groß (max. 20MB)" },
+        { status: 400 }
+      );
+    }
+
     // Upload-Verzeichnis erstellen
     const uploadDir = path.join(process.cwd(), "public/uploads");
     await mkdir(uploadDir, { recursive: true });
@@ -38,6 +48,36 @@ export async function POST(req: Request) {
     const filename = `${timestamp}_${file.name.replace(/\s+/g, "_")}`;
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+
+    // Audio-Metadaten validieren
+    try {
+      const metadata = await parseBuffer(buffer, { mimeType: file.type });
+      
+      // Überprüfen ob es wirklich eine Audio-Datei ist
+      if (!metadata.format || !metadata.format.duration) {
+        return NextResponse.json(
+          { error: "Datei kann nicht als Audio-Datei gelesen werden" },
+          { status: 400 }
+        );
+      }
+
+      // Optional: Länge validieren (z.B. max 10 Minuten)
+      const maxDuration = 10 * 60; // 10 Minuten in Sekunden
+      if (metadata.format.duration > maxDuration) {
+        return NextResponse.json(
+          { error: "Audio-Datei ist zu lang (max. 10 Minuten)" },
+          { status: 400 }
+        );
+      }
+
+    } catch (error) {
+      console.error("Metadata parsing failed:", error);
+      return NextResponse.json(
+        { error: "Datei ist keine gültige Audio-Datei" },
+        { status: 400 }
+      );
+    }
+
     const filePath = path.join(uploadDir, filename);
 
     await writeFile(filePath, buffer);

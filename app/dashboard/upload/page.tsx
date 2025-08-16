@@ -35,8 +35,19 @@ export default function UploadPage() {
   const handleDrop = useCallback((e: React.DragEvent) => {
     handleDrag(e);
     setDragActive(false);
+    const maxSize = 20 * 1024 * 1024; // 20MB
     const newFiles = Array.from(e.dataTransfer.files)
-      .filter(file => file.type.includes("audio"));
+      .filter(file => {
+        if (!file.type.includes("audio")) {
+          alert(`${file.name} ist keine Audio-Datei`);
+          return false;
+        }
+        if (file.size > maxSize) {
+          alert(`${file.name} ist zu groß (max. 20MB)`);
+          return false;
+        }
+        return true;
+      });
     if (newFiles.length) {
       setFiles(prev => {
         const existingNames = new Set(prev.map(f => f.name));
