@@ -41,6 +41,13 @@ interface TokenData {
   createdAt: string;
 }
 
+interface FileSystemError extends Error {
+  code?: string;
+  errno?: number;
+  syscall?: string;
+  path?: string;
+}
+
 interface PlaylistResponse {
   name: string;
   songs: Song[];
@@ -57,7 +64,10 @@ interface PlaylistResponse {
 const DB_PATH = path.join(process.cwd(), "data/playlists.json");
 const TOKENS_DB_PATH = path.join(process.cwd(), "data/tokens.json");
 const TURNIERE_DB_PATH = path.join(process.cwd(), "data/turniere.json");
-const UPLOADS_DIR = path.join(process.cwd(), "public/uploads");
+
+// Disable caching for this API route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // Hilfsfunktionen für Metadaten-Extraktion (übereinstimmend mit songs/route.ts)
 function extractTitleFromFilename(filename: string): string {
@@ -145,8 +155,12 @@ export async function GET(
     const songs: Song[] = await Promise.all(
       playlist.songIds.map(async (songId) => {
         try {
-          // Metadaten aus der Datei lesen
-          const filePath = path.join(UPLOADS_DIR, songId);
+          // Metadaten aus der Datei lesen - Production-safe path resolution
+          const filePath = path.resolve(process.cwd(), "public", "uploads", songId);
+          
+          // Prüfe erst, ob die Datei existiert
+          await fs.access(filePath);
+          
           const fileBuffer = await fs.readFile(filePath);
           const metadata = await parseBuffer(fileBuffer);
 
@@ -156,7 +170,7 @@ export async function GET(
 
           return {
             id: songId,
-            path: `/uploads/${encodeURIComponent(songId)}`,
+            path: `/api/uploads/${encodeURIComponent(songId)}`, // Use API route instead of static path
             filename: songId,
             // Verwende die track-Eigenschaft als bevorzugten Titel falls verfügbar
             title: metadata.common.title || artistInfo.track || extractedTitle || songId.replace(/\.[^/.]+$/, ""),
@@ -164,14 +178,25 @@ export async function GET(
             duration: metadata.format?.duration || 0,
           };
         } catch (error) {
-          console.warn(`Could not parse metadata for ${songId}:`, error);
+          console.error(`Could not parse metadata for ${songId}:`, error);
+          console.error(`File path attempted: ${path.resolve(process.cwd(), "public", "uploads", songId)}`);
+          console.error(`Current working directory: ${process.cwd()}`);
+          
+          const fsError = error as FileSystemError;
+          console.error(`Error details:`, {
+            message: error instanceof Error ? error.message : String(error),
+            code: fsError.code,
+            errno: fsError.errno,
+            syscall: fsError.syscall,
+            path: fsError.path
+          });
           // Fallback: Nur Dateiname-basierte Extraktion
           const extractedTitle = extractTitleFromFilename(songId);
           const artistInfo = extractArtistFromFilename(songId);
           
           return {
             id: songId,
-            path: `/uploads/${encodeURIComponent(songId)}`,
+            path: `/api/uploads/${encodeURIComponent(songId)}`, // Use API route instead of static path
             filename: songId,
             // Verwende die track-Eigenschaft als bevorzugten Titel falls verfügbar
             title: artistInfo.track || extractedTitle || songId.replace(/\.[^/.]+$/, ""),

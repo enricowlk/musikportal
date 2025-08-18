@@ -27,26 +27,33 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [songs, setSongs] = useState<Song[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
 
-  // Load state from LocalStorage
+  // Load state from LocalStorage (but NOT the songs list)
   useEffect(() => {
     const savedState = localStorage.getItem('playerState');
     if (savedState) {
-      const { currentlyPlaying, songs, isPlaying, currentTime } = JSON.parse(savedState);
-      setCurrentlyPlaying(currentlyPlaying);
-      setSongs(songs || []);
-      setIsPlaying(isPlaying || false);
-      setCurrentTime(currentTime || 0);
+      try {
+        const { currentlyPlaying, currentTime } = JSON.parse(savedState);
+        setCurrentlyPlaying(currentlyPlaying);
+        setIsPlaying(false); // Always start with stopped state
+        setCurrentTime(currentTime || 0);
+      } catch (error) {
+        console.error('Error loading player state:', error);
+      }
     }
+    setHasLoadedFromStorage(true);
   }, []);
 
-  // Save state to LocalStorage
+  // Save state to LocalStorage (but NOT the songs list - songs are managed by playlists)
   useEffect(() => {
-    localStorage.setItem(
-      'playerState',
-      JSON.stringify({ currentlyPlaying, songs, isPlaying, currentTime })
-    );
-  }, [currentlyPlaying, songs, isPlaying, currentTime]);
+    if (hasLoadedFromStorage) {
+      localStorage.setItem(
+        'playerState',
+        JSON.stringify({ currentlyPlaying, isPlaying: false, currentTime }) // Don't persist playing state
+      );
+    }
+  }, [currentlyPlaying, currentTime, hasLoadedFromStorage]);
 
   const pauseSong = useCallback(() => {
     const audio = audioRef.current;
@@ -83,6 +90,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [currentlyPlaying, isPlaying, pauseSong]);
 
+  // Enhanced setSongs function that ensures proper updating
+  const updateSongs = useCallback((newSongs: Song[]) => {
+    setSongs(newSongs);
+  }, []);
+
   const playNext = useCallback(() => {
     if (!currentlyPlaying || songs.length === 0) return;
     const currentIndex = songs.findIndex(song => song.path === currentlyPlaying);
@@ -114,7 +126,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         audioRef,
         currentlyPlaying,
         songs,
-        setSongs,
+        setSongs: updateSongs,
         isPlaying,
         setIsPlaying,
         currentTime,

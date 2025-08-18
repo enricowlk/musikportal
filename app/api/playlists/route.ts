@@ -34,6 +34,10 @@ const PLAYLISTS_DB_PATH = path.join(process.cwd(), "data/playlists.json");
 const TURNIERE_DB_PATH = path.join(process.cwd(), "data/turniere.json");
 const TOKENS_DB_PATH = path.join(process.cwd(), "data/tokens.json");
 
+// Disable caching for this API route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   try {
     // Hole Token aus Cookie

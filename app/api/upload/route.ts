@@ -122,7 +122,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       filename: filename,
-      path: `/uploads/${encodeURIComponent(filename)}`,
+      path: `/api/uploads/${encodeURIComponent(filename)}`, // Use API route instead of static path
       metadata: enhancedMetadata, // Metadaten mit zurückgeben
     });
   } catch (error) {

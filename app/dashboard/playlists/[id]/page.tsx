@@ -65,16 +65,18 @@ export default function PlaylistDetail() {
           setTurnier(playlistData.turnier);
         }
         
-        setSongs(
-          (playlistData.songs || []).map((song: Song) => ({
-            ...song,
-            title: song.title || song.filename
-              .replace(/^\d+_?/, "")
-              .replace(/_/g, " ")
-              .replace(/\.(mp3|wav)$/i, ""),
-            artist: song.artist || 'Unbekannter Künstler',
-          }))
-        );
+        const processedSongs = (playlistData.songs || []).map((song: Song) => ({
+          ...song,
+          title: song.title || song.filename
+            .replace(/^\d+_?/, "")
+            .replace(/_/g, " ")
+            .replace(/\.(mp3|wav)$/i, ""),
+          artist: song.artist || 'Unbekannter Künstler',
+        }));
+        
+        setSongs(processedSongs);
+        // WICHTIG: Player-Kontext mit aktuellen Songs aktualisieren
+        setPlayerSongs(processedSongs);
 
         const songsResponse = await fetch('/api/songs');
         const allSongs = await songsResponse.json();
@@ -93,7 +95,7 @@ export default function PlaylistDetail() {
     };
 
     loadData();
-  }, [id]);
+  }, [id, setPlayerSongs]);
 
   const handleDragEnd = async (event: DragEndEvent) => {
   const { active, over } = event;
@@ -106,6 +108,8 @@ export default function PlaylistDetail() {
     );
     
     setSongs(newItems);
+    // Player-Kontext mit neuer Reihenfolge aktualisieren
+    setPlayerSongs(newItems);
     
     try {
       const response = await fetch(`/api/playlists/${id}`, {
@@ -184,6 +188,8 @@ export default function PlaylistDetail() {
 
     const newSongList = songs.filter(song => song.id !== songId);
     setSongs(newSongList);
+    // Player-Kontext mit aktueller Liste aktualisieren
+    setPlayerSongs(newSongList);
     
     // Reihenfolge in der Datenbank aktualisieren
     await fetch(`/api/playlists/${id}`, {
@@ -236,6 +242,8 @@ export default function PlaylistDetail() {
     // Neue Songs am Ende hinzufügen und Reihenfolge speichern
     const newSongList = [...songs, ...addedSongs];
     setSongs(newSongList);
+    // Player-Kontext mit aktueller Liste aktualisieren
+    setPlayerSongs(newSongList);
     
     // Reihenfolge in der Datenbank aktualisieren
     await fetch(`/api/playlists/${id}`, {
@@ -410,6 +418,8 @@ export default function PlaylistDetail() {
                         if (currentlyPlaying === song.path && isPlaying) {
                           pauseSong();
                         } else {
+                          // Der Player-Kontext sollte bereits die aktuellen Songs haben
+                          // aber zur Sicherheit nochmal setzen
                           setPlayerSongs(songs);
                           playSong(song.path);
                         }
@@ -473,11 +483,7 @@ export default function PlaylistDetail() {
                         {filteredAvailableSongs.map(song => (
                           <div 
                             key={song.id} 
-                            className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                              selectedSongs.includes(song.id) 
-                                ? 'dark:hover:bg-[#777]' 
-                                : `${cardBg} dark:hover:bg-[#777]`
-                            } ${cardBorder}`}
+                            className={`p-4 border rounded-lg cursor-pointer transition-colors ${cardBorder}`}
                             style={{
                               borderColor: selectedSongs.includes(song.id) ? 'var(--border)' : 'var(--border)',
                               borderWidth: selectedSongs.includes(song.id) ? '2px' : '1px'

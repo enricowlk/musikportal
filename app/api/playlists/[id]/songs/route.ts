@@ -20,7 +20,10 @@ interface Song {
 }
 
 const DB_PATH = path.join(process.cwd(), "data/playlists.json");
-const UPLOADS_DIR = path.join(process.cwd(), "public/uploads");
+
+// Disable caching for this API route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // Hilfsfunktionen für Metadaten-Extraktion (kopiert aus upload route)
 function extractTitleFromFilename(filename: string): string {
@@ -105,8 +108,8 @@ export async function POST(
     const addedSongs: Song[] = await Promise.all(
       newSongIds.map(async (id) => {
         try {
-          // Metadaten aus der Datei lesen
-          const filePath = path.join(UPLOADS_DIR, id);
+          // Metadaten aus der Datei lesen - Production-safe
+          const filePath = path.resolve(process.cwd(), "public", "uploads", id);
           const fileBuffer = await fs.readFile(filePath);
           const metadata = await parseBuffer(fileBuffer);
 
@@ -116,7 +119,7 @@ export async function POST(
 
           return {
             id,
-            path: `/uploads/${encodeURIComponent(id)}`,
+            path: `/api/uploads/${encodeURIComponent(id)}`, // Use API route instead of static path
             filename: id,
             // Verwende die track-Eigenschaft als bevorzugten Titel falls verfügbar
             title: metadata.common.title || artistInfo.track || extractedTitle || id.replace(/\.[^/.]+$/, ""),
@@ -131,7 +134,7 @@ export async function POST(
           
           return {
             id,
-            path: `/uploads/${encodeURIComponent(id)}`,
+            path: `/api/uploads/${encodeURIComponent(id)}`, // Use API route instead of static path
             filename: id,
             // Verwende die track-Eigenschaft als bevorzugten Titel falls verfügbar
             title: artistInfo.track || extractedTitle || id.replace(/\.[^/.]+$/, ""),

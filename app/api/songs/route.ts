@@ -4,18 +4,22 @@ import path from "path";
 import { promises as fs } from "fs";
 import { parseBuffer } from "music-metadata";
 
-const UPLOADS_DIR = path.join(process.cwd(), "public/uploads");
+// Disable caching for this API route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET() {
   try {
-    const files = await fs.readdir(UPLOADS_DIR);
+    // Production-safe path resolution
+    const uploadsPath = path.resolve(process.cwd(), "public", "uploads");
+    const files = await fs.readdir(uploadsPath);
     const audioFiles = files.filter(file => /\.(mp3|wav|m4a|flac)$/i.test(file));
     
     const songs = await Promise.all(
       audioFiles.map(async (file) => {
         try {
-          // Metadaten aus der Datei lesen
-          const filePath = path.join(UPLOADS_DIR, file);
+          // Metadaten aus der Datei lesen - Production-safe
+          const filePath = path.resolve(process.cwd(), "public", "uploads", file);
           const fileBuffer = await fs.readFile(filePath);
           const metadata = await parseBuffer(fileBuffer);
 
@@ -26,7 +30,7 @@ export async function GET() {
           return {
             id: file,
             filename: file,
-            path: `/uploads/${encodeURIComponent(file)}`,
+            path: `/api/uploads/${encodeURIComponent(file)}`, // Use API route instead of static path
             // Verwende die bessere Version von Titel und Künstler
             title: metadata.common.title || extractedTitle || file.replace(/\.[^/.]+$/, ""),
             artist: metadata.common.artist || artistInfo.artist || "Unbekannter Künstler",
@@ -49,7 +53,7 @@ export async function GET() {
           return {
             id: file,
             filename: file,
-            path: `/uploads/${encodeURIComponent(file)}`,
+            path: `/api/uploads/${encodeURIComponent(file)}`, // Use API route instead of static path
             title: extractedTitle || file.replace(/\.[^/.]+$/, ""),
             artist: artistInfo.artist || "Unbekannter Künstler",
             album: "Tanzen Musik Website",
