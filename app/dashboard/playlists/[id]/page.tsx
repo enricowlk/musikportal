@@ -430,7 +430,7 @@ export default function PlaylistDetail() {
 
           {/* Modal zum Hinzufügen von Songs */}
             {showAddSongsModal && canEdit && (
-              <div className={`fixed inset-0 ${theme === 'dark' ? 'bg-[#0a0a0a]' : 'bg-white'} bg-opacity-50 flex items-center justify-center z-50 p-4`}>
+              <div className={`fixed inset-0 bg-opacity-50 backdrop-blur flex items-center justify-center z-50 p-4`}>
                 <div className={`rounded-xl shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col ${cardBg} ${cardBorder}`}>
                   {/* Header mit Titel und Schließen-Button */}
                   <div className={`p-6 border-b ${cardBorder}`}>
