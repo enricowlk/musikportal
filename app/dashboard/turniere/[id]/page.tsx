@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { FiCalendar, FiMapPin, FiUsers, FiMusic, FiPlus, FiClock, FiChevronLeft } from "react-icons/fi";
+import { FiCalendar, FiMapPin, FiUsers, FiMusic, FiPlus, FiClock, FiChevronLeft, FiDownload } from "react-icons/fi";
 import NavBar from "@/app/components/Navigation/Navbar";
 import { useTheme } from "@/app/components/Theme/ThemeProvider";
 import { Turnier, PlaylistWithTurnier } from "@/app/types";
@@ -40,6 +40,42 @@ export default function TurnierDetail() {
 
     loadTurnier();
   }, [turnierId]);
+
+  // Export-Funktionen
+  const handleExportPlaylist = async (playlistId: string, format: 'm3u' | 'xml') => {
+    try {
+      const response = await fetch(`/api/playlists/${playlistId}/export?format=${format}`);
+      
+      if (!response.ok) {
+        throw new Error('Export fehlgeschlagen');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // Dateiname aus Content-Disposition Header extrahieren oder Fallback verwenden
+      const contentDisposition = response.headers.get('content-disposition');
+      let filename = `playlist.${format}`;
+      
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]*)"?/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+      
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Export-Fehler:', error);
+      alert('Export fehlgeschlagen. Bitte versuchen Sie es erneut.');
+    }
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -222,13 +258,14 @@ export default function TurnierDetail() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {turnier.playlists.map((playlist) => (
-                <Link key={playlist.id} href={`/dashboard/playlists/${playlist.id}`}>
-                  <div className={`p-4 rounded-lg border transition-all duration-200 hover:shadow-lg cursor-pointer z-10 relative ${cardBg} ${cardBorder}`}>
-                    <h3 className="font-semibold mb-2 line-clamp-2" style={{ color: 'var(--foreground)' }}>
+                <div key={playlist.id} className={`p-4 rounded-lg border transition-all duration-200 hover:shadow-lg z-10 relative ${cardBg} ${cardBorder}`}>
+                  {/* Playlist Titel und Info - klickbar für Navigation */}
+                  <Link href={`/dashboard/playlists/${playlist.id}`} className="block cursor-pointer">
+                    <h3 className="font-semibold mb-2 line-clamp-2 hover:text-blue-600 transition-colors" style={{ color: 'var(--foreground)' }}>
                       {playlist.name}
                     </h3>
                     
-                    <div className={`text-sm ${textSecondary} space-y-1`}>
+                    <div className={`text-sm ${textSecondary} space-y-1 mb-3`}>
                       <div className="flex items-center gap-2">
                         <FiMusic size={14} />
                         <span>{playlist.songCount} Songs</span>
@@ -238,8 +275,34 @@ export default function TurnierDetail() {
                         <span>Zuletzt bearbeitet: {formatPlaylistDate(playlist.updatedAt)}</span>
                       </div>
                     </div>
+                  </Link>
+                  
+                  {/* Export Buttons */}
+                  <div className="flex gap-2 pt-2 border-t border-gray-200/50">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleExportPlaylist(playlist.id, 'm3u');
+                      }}
+                      className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs rounded transition-colors ${textSecondary} hover:text-blue-600 hover:bg-blue-50/50`}
+                      title="Als M3U exportieren (für VLC, Winamp, etc.)"
+                    >
+                      <FiDownload size={12} />
+                      M3U
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleExportPlaylist(playlist.id, 'xml');
+                      }}
+                      className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs rounded transition-colors ${textSecondary} hover:text-green-600 hover:bg-green-50/50`}
+                      title="Als XML exportieren (für iTunes, Music, etc.)"
+                    >
+                      <FiDownload size={12} />
+                      XML
+                    </button>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           )}
