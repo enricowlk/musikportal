@@ -7,6 +7,7 @@ interface TokenData {
   name: string;
   token: string;
   description: string;
+  role: 'admin' | 'ausrichter' | 'formation';
   active: boolean;
   createdAt: string;
 }
@@ -32,7 +33,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         valid: true,
         verein: validToken.name,
-        vereinId: validToken.id
+        vereinId: validToken.id,
+        role: validToken.role
       });
     }
     

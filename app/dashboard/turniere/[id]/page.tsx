@@ -201,7 +201,7 @@ export default function TurnierDetail() {
                 </div>
                 <div className={`flex items-center gap-2 ${textSecondary}`}>
                   <FiUsers size={16} />
-                  <span>{turnier.veranstalter}</span>
+                  <span>{turnier.ausrichter}</span>
                 </div>
               </div>
             </div>

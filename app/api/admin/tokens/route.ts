@@ -7,6 +7,7 @@ interface TokenData {
   name: string;
   token: string;
   description: string;
+  role: 'admin' | 'ausrichter' | 'formation';
   active: boolean;
   createdAt: string;
 }
@@ -39,7 +40,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, description } = await request.json();
+    const { name, description, role = 'ausrichter' } = await request.json();
     
     // Generiere einen neuen Token
     const newToken = `${name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}-${Math.random().toString(36).substring(2)}`;
@@ -52,6 +53,7 @@ export async function POST(request: NextRequest) {
       name,
       token: newToken,
       description,
+      role,
       active: true,
       createdAt: new Date().toISOString()
     };

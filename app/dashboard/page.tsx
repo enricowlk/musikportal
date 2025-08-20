@@ -5,6 +5,7 @@ import { FiCalendar, FiMapPin, FiUsers, FiSearch, FiClock } from "react-icons/fi
 import NavBar from "../components/Navigation/Navbar";
 import { useTheme } from "../components/Theme/ThemeProvider";
 import AuthGuard from "../components/Auth/AuthGuard";
+import { useUser } from "../context/UserContext";
 import { Turnier } from "../types";
 
 export default function Dashboard() {
@@ -12,6 +13,17 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const { theme } = useTheme();
+  const { permissions, role, userName, isLoading: userLoading } = useUser();
+
+  const [hasLoadedTurniere, setHasLoadedTurniere] = useState(false);
+
+  useEffect(() => {
+    // Redirect formations to upload page
+    if (!userLoading && role === 'formation') {
+      window.location.href = '/dashboard/upload';
+      return;
+    }
+  }, [role, userLoading]);
 
   useEffect(() => {
     const loadTurniere = async () => {
@@ -23,16 +35,44 @@ export default function Dashboard() {
         console.error("Fehler beim Laden der Turniere:", error);
       } finally {
         setIsLoading(false);
+        setHasLoadedTurniere(true);
       }
     };
 
-    loadTurniere();
-  }, []);
+    if (!userLoading && permissions?.canAccessDashboard && !hasLoadedTurniere) {
+      loadTurniere();
+    } else if (!userLoading && !permissions?.canAccessDashboard) {
+      setIsLoading(false);
+    }
+  }, [permissions, userLoading, hasLoadedTurniere]);
+
+  // Don't render anything for formations
+  if (!userLoading && role === 'formation') {
+    return null;
+  }
+
+  // Don't render if user doesn't have dashboard access
+  if (!userLoading && !permissions?.canAccessDashboard) {
+    return (
+      <AuthGuard>
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">
+              Keine Berechtigung
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Sie haben keine Berechtigung, auf das Dashboard zuzugreifen.
+            </p>
+          </div>
+        </div>
+      </AuthGuard>
+    );
+  }
 
   const filteredTurniere = turniere.filter(turnier =>
     turnier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     turnier.ort.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    turnier.veranstalter.toLowerCase().includes(searchTerm.toLowerCase())
+    turnier.ausrichter.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const formatDate = (dateString: string) => {
@@ -153,7 +193,7 @@ export default function Dashboard() {
                       
                       <div className={`flex items-center gap-2 text-sm ${textSecondary}`}>
                         <FiUsers size={16} />
-                        <span>{turnier.veranstalter}</span>
+                        <span>{turnier.ausrichter}</span>
                       </div>
                     </div>
 

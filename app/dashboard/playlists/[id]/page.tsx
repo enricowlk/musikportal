@@ -23,7 +23,7 @@ export default function PlaylistDetail() {
     name: string;
     datum: string;
     ort: string;
-    veranstalter: string;
+    ausrichter: string;
     status: string;
   } | null>(null); // Neue State für Turnier-Info
   const [isLoading, setIsLoading] = useState(true);

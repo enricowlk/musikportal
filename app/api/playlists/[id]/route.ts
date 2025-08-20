@@ -27,7 +27,7 @@ interface Turnier {
   name: string;
   datum: string;
   ort: string;
-  veranstalter: string;
+  ausrichter: string;
   status: 'anstehend' | 'laufend' | 'abgeschlossen';
   beschreibung?: string;
 }
@@ -56,7 +56,7 @@ interface PlaylistResponse {
     name: string;
     datum: string;
     ort: string;
-    veranstalter: string;
+    ausrichter: string;
     status: string;
   };
 }
@@ -220,7 +220,7 @@ export async function GET(
             name: foundTurnier.name,
             datum: foundTurnier.datum,
             ort: foundTurnier.ort,
-            veranstalter: foundTurnier.veranstalter,
+            ausrichter: foundTurnier.ausrichter,
             status: foundTurnier.status
           };
         }

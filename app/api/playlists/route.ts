@@ -17,7 +17,7 @@ interface Turnier {
   name: string;
   datum: string;
   ort: string;
-  veranstalter: string;
+  ausrichter: string;
   status: string;
 }
 

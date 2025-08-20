@@ -29,7 +29,20 @@ export async function middleware(request: NextRequest) {
       redirectResponse.cookies.delete('verein-info');
       return redirectResponse;
     }
+
+    const data = await response.json();
+    const userRole = data.role;
+    const pathname = request.nextUrl.pathname;
     
+    // Rollenbasierte Zugriffskontrolle
+    // Formationen dürfen nur auf Upload-Seiten zugreifen
+    if (userRole === 'formation') {
+      if (!pathname.startsWith('/dashboard/upload')) {
+        return NextResponse.redirect(new URL('/dashboard/upload', request.url));
+      }
+    }
+    
+    // Alle anderen Rollen haben normalen Zugriff
     return NextResponse.next();
     
   } catch (error) {

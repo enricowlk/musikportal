@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { ThemeProvider, useTheme } from './components/Theme/ThemeProvider';
 import CustomAudioPlayer from './components/Audio/CustomAudioPlayer';
 import { PlayerProvider } from './context/PlayerContent';
+import { UserProvider } from './context/UserContext';
 
 function BackgroundLogo() {
   const { theme } = useTheme();
@@ -39,17 +40,19 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeProvider>
-      <BackgroundLogo />
-      <div className="flex flex-col min-h-screen">
-        {isHomePage ? (
-          <div className="flex-1">{children}</div>
-        ) : (
-          <PlayerProvider>
-            <div className="flex-1 pb-24">{children}</div>
-            <CustomAudioPlayer className="fixed bottom-0 left-0 right-0" />
-          </PlayerProvider>
-        )}
-      </div>
+      <UserProvider>
+        <BackgroundLogo />
+        <div className="flex flex-col min-h-screen">
+          {isHomePage ? (
+            <div className="flex-1">{children}</div>
+          ) : (
+            <PlayerProvider>
+              <div className="flex-1 pb-24">{children}</div>
+              <CustomAudioPlayer className="fixed bottom-0 left-0 right-0" />
+            </PlayerProvider>
+          )}
+        </div>
+      </UserProvider>
     </ThemeProvider>
   );
 }

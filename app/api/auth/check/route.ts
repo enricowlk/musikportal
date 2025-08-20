@@ -26,7 +26,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ 
       authenticated: true,
       verein: data.verein,
-      vereinId: data.vereinId
+      vereinId: data.vereinId,
+      role: data.role
     });
     
   } catch {

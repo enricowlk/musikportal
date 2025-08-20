@@ -8,7 +8,7 @@ interface Turnier {
   name: string;
   datum: string;
   ort: string;
-  veranstalter: string;
+  ausrichter: string;
   status: 'anstehend' | 'laufend' | 'abgeschlossen';
   beschreibung?: string;
 }
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
       turniere = turniere.filter(t => 
         t.name.toLowerCase().includes(searchLower) ||
         t.ort.toLowerCase().includes(searchLower) ||
-        t.veranstalter.toLowerCase().includes(searchLower)
+        t.ausrichter.toLowerCase().includes(searchLower)
       );
     }
     

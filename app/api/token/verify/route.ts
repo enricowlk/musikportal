@@ -7,6 +7,7 @@ interface TokenData {
   name: string;
   token: string;
   description: string;
+  role: 'admin' | 'ausrichter' | 'formation';
   active: boolean;
   createdAt: string;
 }
@@ -28,7 +29,8 @@ export async function POST(req: Request) {
       const response = NextResponse.json({ 
         success: true, 
         verein: validToken.name,
-        vereinId: validToken.id
+        vereinId: validToken.id,
+        role: validToken.role
       });
       
       // Setze sowohl den Token als auch die Verein-Info als Cookie
@@ -43,7 +45,8 @@ export async function POST(req: Request) {
       
       response.cookies.set("verein-info", JSON.stringify({
         id: validToken.id,
-        name: validToken.name
+        name: validToken.name,
+        role: validToken.role
       }), { 
         httpOnly: true,
         secure: false, // Deaktiviert für lokale Entwicklung

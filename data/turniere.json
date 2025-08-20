@@ -4,7 +4,7 @@
     "name": "Norddeutsche Meisterschaft 2025",
     "datum": "2025-09-15",
     "ort": "Hamburg",
-    "veranstalter": "TSC Hamburg",
+    "ausrichter": "TSC Hamburg",
     "status": "anstehend",
     "beschreibung": "Norddeutsche Meisterschaft"
   },
@@ -13,7 +13,7 @@
     "name": "Berliner Stadtmeisterschaft",
     "datum": "2025-08-25",
     "ort": "Berlin",
-    "veranstalter": "TSV Berlin",
+    "ausrichter": "TSV Berlin",
     "status": "anstehend",
     "beschreibung": "Stadtmeisterschaft für alle Altersklassen"
   },
@@ -22,7 +22,7 @@
     "name": "Bayern Cup 2025",
     "datum": "2025-10-12",
     "ort": "München",
-    "veranstalter": "TC München",
+    "ausrichter": "TC München",
     "status": "anstehend",
     "beschreibung": "Bayerische Landesmeisterschaft"
   },
@@ -31,7 +31,7 @@
     "name": "Rheinland-Pfalz Open",
     "datum": "2025-07-20",
     "ort": "Mainz",
-    "veranstalter": "TSG Mainz",
+    "ausrichter": "TSG Mainz",
     "status": "abgeschlossen",
     "beschreibung": "Offene Meisterschaft Rheinland-Pfalz"
   },
@@ -40,7 +40,7 @@
     "name": "Deutsche Jugendmeisterschaft",
     "datum": "2025-11-08",
     "ort": "Frankfurt",
-    "veranstalter": "DTV",
+    "ausrichter": "DTV",
     "status": "anstehend",
     "beschreibung": "Deutsche Meisterschaft für Jugend und Junioren"
   }

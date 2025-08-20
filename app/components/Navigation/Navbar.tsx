@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { FiHome, FiUpload, FiList, FiMenu, FiX, FiSun, FiMoon } from "react-icons/fi";
 import { useTheme } from "../Theme/ThemeProvider";
+import { useUser } from "@/app/context/UserContext";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function NavBar() {
@@ -12,6 +13,7 @@ export default function NavBar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { permissions, role, isLoading: userLoading } = useUser();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -22,6 +24,14 @@ export default function NavBar() {
   }, []);
 
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
+
+  // Don't render navbar until user data is loaded
+  if (userLoading) {
+    return null;
+  }
+
+  // For formations, show only minimal navbar with theme toggle
+  const isFormation = role === 'formation';
 
   return (
     <>
@@ -85,24 +95,34 @@ export default function NavBar() {
             
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-6">
-              <NavLink 
-                href="/dashboard" 
-                icon={<FiHome />} 
-                text="Dashboard" 
-                isActive={pathname === '/dashboard'}
-              />
-              <NavLink 
-                href="/dashboard/playlists" 
-                icon={<FiList />} 
-                text="Playlists" 
-                isActive={pathname.startsWith('/dashboard/playlists')}
-              />
-              <NavLink 
-                href="/dashboard/upload" 
-                icon={<FiUpload />} 
-                text="Upload" 
-                isActive={pathname === '/dashboard/upload'}
-              />
+              {!isFormation && (
+                <>
+                  {permissions?.canAccessDashboard && (
+                    <NavLink 
+                      href="/dashboard" 
+                      icon={<FiHome />} 
+                      text="Dashboard" 
+                      isActive={pathname === '/dashboard'}
+                    />
+                  )}
+                  {permissions?.canViewPlaylists && (
+                    <NavLink 
+                      href="/dashboard/playlists" 
+                      icon={<FiList />} 
+                      text="Playlists" 
+                      isActive={pathname.startsWith('/dashboard/playlists')}
+                    />
+                  )}
+                </>
+              )}
+              {permissions?.canUpload && (
+                <NavLink 
+                  href="/dashboard/upload" 
+                  icon={<FiUpload />} 
+                  text="Upload" 
+                  isActive={pathname === '/dashboard/upload'}
+                />
+              )}
               
               <motion.button
                 whileHover={{ scale: 1.1, rotate: 15 }}
@@ -129,25 +149,27 @@ export default function NavBar() {
                 {theme === 'light' ? <FiMoon className="text-lg" /> : <FiSun className="text-lg" />}
               </motion.button>
               
-              <motion.button 
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={toggleMobileMenu}
-                className="text-[var(--navbar-icon)] hover:text-[var(--navbar-icon-hover)] focus:outline-none transition-colors"
-              >
-                {mobileMenuOpen ? (
-                  <FiX className="text-xl" />
-                ) : (
-                  <FiMenu className="text-xl" />
-                )}
-              </motion.button>
+              {!isFormation && (
+                <motion.button 
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={toggleMobileMenu}
+                  className="text-[var(--navbar-icon)] hover:text-[var(--navbar-icon-hover)] focus:outline-none transition-colors"
+                >
+                  {mobileMenuOpen ? (
+                    <FiX className="text-xl" />
+                  ) : (
+                    <FiMenu className="text-xl" />
+                  )}
+                </motion.button>
+              )}
             </div>
           </div>
         </div>
 
         {/* Mobile Menu */}
         <AnimatePresence>
-          {mobileMenuOpen && (
+          {mobileMenuOpen && !isFormation && (
             <motion.div 
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
@@ -160,27 +182,33 @@ export default function NavBar() {
               }}
             >
               <div className="px-2 pt-2 pb-3 space-y-1">
-                <MobileNavLink 
-                  href="/dashboard" 
-                  icon={<FiHome />} 
-                  text="Dashboard" 
-                  isActive={pathname === '/dashboard'}
-                  onClick={toggleMobileMenu}
-                />
-                <MobileNavLink 
-                  href="/dashboard/playlists" 
-                  icon={<FiList />} 
-                  text="Playlists" 
-                  isActive={pathname.startsWith('/dashboard/playlists')}
-                  onClick={toggleMobileMenu}
-                />
-                <MobileNavLink 
-                  href="/dashboard/upload" 
-                  icon={<FiUpload />} 
-                  text="Upload" 
-                  isActive={pathname === '/dashboard/upload'}
-                  onClick={toggleMobileMenu}
-                />
+                {permissions?.canAccessDashboard && (
+                  <MobileNavLink 
+                    href="/dashboard" 
+                    icon={<FiHome />} 
+                    text="Dashboard" 
+                    isActive={pathname === '/dashboard'}
+                    onClick={toggleMobileMenu}
+                  />
+                )}
+                {permissions?.canViewPlaylists && (
+                  <MobileNavLink 
+                    href="/dashboard/playlists" 
+                    icon={<FiList />} 
+                    text="Playlists" 
+                    isActive={pathname.startsWith('/dashboard/playlists')}
+                    onClick={toggleMobileMenu}
+                  />
+                )}
+                {permissions?.canUpload && (
+                  <MobileNavLink 
+                    href="/dashboard/upload" 
+                    icon={<FiUpload />} 
+                    text="Upload" 
+                    isActive={pathname === '/dashboard/upload'}
+                    onClick={toggleMobileMenu}
+                  />
+                )}
               </div>
             </motion.div>
           )}

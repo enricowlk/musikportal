@@ -1,24 +1,28 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@/app/context/UserContext';
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
 
 export default function AuthGuard({ children }: AuthGuardProps) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const router = useRouter();
+  const { updateUserInfo, isLoading, userId } = useUser();
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Erst Cookie-basierte Authentifizierung prüfen
+        // Cookie-basierte Authentifizierung prüfen
         const response = await fetch('/api/auth/check');
         
         if (response.ok) {
-          setIsAuthenticated(true);
-          return;
+          const data = await response.json();
+          if (data.authenticated && data.role) {
+            updateUserInfo(data.role, data.vereinId, data.verein);
+            return;
+          }
         }
         
         // Fallback: localStorage prüfen (für macOS)
@@ -33,38 +37,41 @@ export default function AuthGuard({ children }: AuthGuardProps) {
           });
           
           if (tokenResponse.ok) {
-            // Token ist gültig, setze Cookies neu
-            const verifyResponse = await fetch('/api/token/verify', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ token: localToken }),
-            });
-            
-            if (verifyResponse.ok) {
-              setIsAuthenticated(true);
-              return;
+            const tokenData = await tokenResponse.json();
+            if (tokenData.valid && tokenData.role) {
+              // Token ist gültig, setze Cookies neu
+              const verifyResponse = await fetch('/api/token/verify', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ token: localToken }),
+              });
+              
+              if (verifyResponse.ok) {
+                const verifyData = await verifyResponse.json();
+                updateUserInfo(verifyData.role, verifyData.vereinId, verifyData.verein);
+                return;
+              }
             }
           }
         }
         
         // Nicht authentifiziert
-        setIsAuthenticated(false);
         router.push('/');
         
       } catch (error) {
         console.error('Auth check failed:', error);
-        setIsAuthenticated(false);
         router.push('/');
       }
     };
 
+    // Nur einmal prüfen
     checkAuth();
-  }, [router]);
+  }, []); // Leere dependency array für einmalige Ausführung
 
   // Zeige Loading während der Authentifizierung geprüft wird
-  if (isAuthenticated === null) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -75,8 +82,8 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
-  // Zeige Inhalt nur wenn authentifiziert
-  if (isAuthenticated) {
+  // Zeige Inhalt nur wenn authentifiziert (haben eine User-ID)
+  if (userId) {
     return <>{children}</>;
   }
 

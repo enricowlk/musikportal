@@ -1,3 +1,27 @@
+export type UserRole = 'admin' | 'ausrichter' | 'formation';
+
+export type TokenData = {
+  id: string;
+  name: string;
+  token: string;
+  description: string;
+  role: UserRole;
+  active: boolean;
+  createdAt: string;
+};
+
+export type UserPermissions = {
+  canUpload: boolean;
+  canViewPlaylists: boolean;
+  canCreatePlaylists: boolean;
+  canDeletePlaylists: boolean;
+  canViewTurniere: boolean;
+  canCreateTurniere: boolean;
+  canViewAllTurniere: boolean;
+  canAccessDashboard: boolean;
+  canManageTokens: boolean;
+};
+
 export type Song = {
   id: string;
   filename: string;
@@ -20,7 +44,7 @@ export type Turnier = {
   name: string;
   datum: string;
   ort: string;
-  veranstalter: string;
+  ausrichter: string;
   status: 'anstehend' | 'laufend' | 'abgeschlossen';
   beschreibung?: string;
 };

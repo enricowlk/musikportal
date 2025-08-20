@@ -34,5 +34,24 @@
     "createdAt": "2025-08-15T13:16:28.296Z",
     "createdBy": "verein-nord",
     "turnierId": "1"
+  },
+  {
+    "id": "1755680240823",
+    "name": "Lieblingssongs",
+    "songIds": [
+      "1755551305824_Sosa_La_M_x_Luciano_-_Butcher_(prod._by_nilly).mp3",
+      "1754231974925_Apache_207_-_Mann_muss.mp3",
+      "1754243832203_Pajel_x_Summer_Cem_-_MS_FATTY.mp3",
+      "1755084838469_A$AP_Rocky_-_Praise_The_Lord_(Da_Shine)_(Official_Video)_ft._Skepta.mp3",
+      "1755084838620_Mustard,_Migos_-_Pure_Water.mp3",
+      "1755340605848_Dababy_-_BOP_[Official_Audio].mp3",
+      "1755548691410_Akon_-_Smack_That_ft._Eminem_(Lyric_Video).mp3",
+      "1755550501740_AYMEN_x_AMO_-_Capri_Sun_(prod._by_Lord_JKO,_Chekaa).mp3",
+      "1755551114950_Jazeek_-_Sexy_Lady_(Official_Video).mp3",
+      "1755551840442_21_Savage,_Offset,_Metro_Boomin_-_Ric_Flair_Drip_(Official_Music_Video).mp3"
+    ],
+    "createdAt": "2025-08-20T08:57:20.823Z",
+    "createdBy": "dtv-hauptverein",
+    "turnierId": "2"
   }
 ]

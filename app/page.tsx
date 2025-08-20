@@ -2,10 +2,12 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTheme } from "./components/Theme/ThemeProvider";
+import { useUser } from "./context/UserContext";
 
 export default function Home() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { updateUserInfo } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [vereinName, setVereinName] = useState("");
@@ -30,12 +32,16 @@ export default function Home() {
       if (res.ok && data.success) {
         setVereinName(data.verein);
         
+        // Update User Context with role information
+        updateUserInfo(data.role, data.vereinId, data.verein);
+        
         // Zusätzlich auch in localStorage speichern als Fallback für macOS
         try {
           localStorage.setItem('auth-token', token);
           localStorage.setItem('verein-info', JSON.stringify({
             id: data.vereinId,
-            name: data.verein
+            name: data.verein,
+            role: data.role
           }));
         } catch (e) {
           console.warn('localStorage not available:', e);
@@ -43,18 +49,20 @@ export default function Home() {
         
         // Kurz den Vereinsnamen anzeigen, dann weiterleiten
         setTimeout(() => {
-          // Fallback für macOS/Safari: versuche window.location falls router.push nicht funktioniert
+          // Redirect based on role
+          const targetUrl = data.role === 'formation' ? '/dashboard/upload' : '/dashboard';
+          
           try {
-            router.push("/dashboard");
+            router.push(targetUrl);
             // Zusätzlicher Fallback nach kurzer Zeit
             setTimeout(() => {
-              if (window.location.pathname !== "/dashboard") {
-                window.location.href = "/dashboard";
+              if (window.location.pathname !== targetUrl) {
+                window.location.href = targetUrl;
               }
             }, 500);
           } catch {
             // Direkte Navigation als Fallback
-            window.location.href = "/dashboard";
+            window.location.href = targetUrl;
           }
         }, 1500);
       } else {
