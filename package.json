@@ -19,6 +19,7 @@
     "music-metadata": "^11.8.2",
     "next": "15.4.5",
     "next-auth": "^4.24.11",
+    "node-id3": "^0.2.9",
     "react": "19.1.0",
     "react-dom": "^19.1.0",
     "react-h5-audio-player": "^3.10.0",

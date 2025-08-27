@@ -10,6 +10,27 @@ interface DuplicateInfo {
   duplicateType: 'exact' | 'similar' | 'duration';
 }
 
+interface EsvValidationResult {
+  found: boolean;
+  formation?: {
+    formationsnr: string;
+    aufstellungsversion: string;
+    teamName: string;
+    clubName: string;
+    clubId: string;
+  };
+  turniere?: Array<{
+    id: string;
+    name: string;
+    startgruppe: string;
+    turnierart: string;
+    startnummer: string;
+    veranstaltung: string;
+    datum: string;
+  }>;
+  error?: string;
+}
+
 export default function UploadPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -18,6 +39,15 @@ export default function UploadPage() {
   const [dragActive, setDragActive] = useState(false);
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  // ESV-Integration States
+  const [useEsvIntegration, setUseEsvIntegration] = useState(false);
+  const [formationsnr, setFormationsnr] = useState('');
+  const [aufstellungsversion, setAufstellungsversion] = useState('');
+  const [esvId, setEsvId] = useState('');
+  const [password, setPassword] = useState('');
+  const [esvValidationResult, setEsvValidationResult] = useState<EsvValidationResult | null>(null);
+  const [isValidatingEsv, setIsValidatingEsv] = useState(false);
 
   // Drag & Drop Handlers
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -76,8 +106,21 @@ export default function UploadPage() {
       for (const file of files) {
         const formData = new FormData();
         formData.append("file", file);
+        
+        // ESV-Integration: Falls ESV-Daten validiert wurden, diese hinzufügen
+        if (useEsvIntegration && esvValidationResult?.found) {
+          formData.append("formationsnr", formationsnr);
+          formData.append("aufstellungsversion", aufstellungsversion);
+          formData.append("esvId", esvId);
+          formData.append("password", password);
+        }
 
-        const res = await fetch("/api/upload", {
+        // Route wählen basierend auf ESV-Integration
+        const uploadUrl = useEsvIntegration && esvValidationResult?.found 
+          ? "/api/upload/formation" 
+          : "/api/upload";
+
+        const res = await fetch(uploadUrl, {
           method: "POST",
           body: formData,
         });
@@ -119,6 +162,40 @@ export default function UploadPage() {
     }
   };
 
+  // ESV-Validierung
+  const validateEsvFormation = async () => {
+    if (!formationsnr || !aufstellungsversion || !esvId || !password) {
+      alert('Bitte alle ESV-Parameter eingeben');
+      return;
+    }
+
+    setIsValidatingEsv(true);
+    try {
+      const response = await fetch('/api/formation/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          formationsnr: parseInt(formationsnr),
+          aufstellungsversion: parseInt(aufstellungsversion),
+          esvId,
+          password
+        })
+      });
+
+      const result = await response.json();
+      setEsvValidationResult(result);
+      
+      if (!response.ok) {
+        alert(`ESV-Validierung fehlgeschlagen: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('ESV-Validierung-Fehler:', error);
+      alert('ESV-Validierung fehlgeschlagen');
+    } finally {
+      setIsValidatingEsv(false);
+    }
+  };
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--background)', color: 'var(--foreground)' }} suppressHydrationWarning>
       <NavBar />
@@ -128,6 +205,123 @@ export default function UploadPage() {
           <div className="flex flex-col items-center text-center mb-8">
             <FiUpload className="text-3xl text-blue-500 mb-3" />
             <h1 className="text-3xl font-bold" style={{ color: 'var(--foreground)' }}>Musik hochladen</h1>
+          </div>
+          
+          {/* ESV-Integration Toggle */}
+          <div className="w-full max-w-2xl mb-6">
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">ESV-Integration</h3>
+                  <p className="text-sm text-gray-500">Automatische Validierung und Playlist-Zuordnung für Formationen</p>
+                </div>
+                <button
+                  onClick={() => setUseEsvIntegration(!useEsvIntegration)}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                    useEsvIntegration ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      useEsvIntegration ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+              
+              {/* ESV-Formular */}
+              {useEsvIntegration && (
+                <div className="border-t pt-4 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Formationsnummer
+                      </label>
+                      <input
+                        type="number"
+                        value={formationsnr}
+                        onChange={(e) => setFormationsnr(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="z.B. 12345"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Aufstellungsversion
+                      </label>
+                      <input
+                        type="number"
+                        value={aufstellungsversion}
+                        onChange={(e) => setAufstellungsversion(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="z.B. 1"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        ESV-ID
+                      </label>
+                      <input
+                        type="text"
+                        value={esvId}
+                        onChange={(e) => setEsvId(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="ESV-Admin-ID"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Passwort
+                      </label>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="ESV-Passwort"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={validateEsvFormation}
+                      disabled={isValidatingEsv}
+                      className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {isValidatingEsv ? 'Validiere...' : 'Formation validieren'}
+                    </button>
+                  </div>
+                  
+                  {/* ESV-Validierungsergebnis */}
+                  {esvValidationResult && (
+                    <div className={`p-3 rounded-md ${esvValidationResult.found ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                      {esvValidationResult.found ? (
+                        <div className="text-green-800">
+                          <div className="flex items-center mb-2">
+                            <FiCheck className="mr-2" />
+                            <strong>Formation gefunden!</strong>
+                          </div>
+                          <p>Team: {esvValidationResult.formation?.teamName}</p>
+                          <p>Verein: {esvValidationResult.formation?.clubName}</p>
+                          {(esvValidationResult.turniere?.length ?? 0) > 0 && (
+                            <p>Turniere: {esvValidationResult.turniere?.length ?? 0} gefunden</p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-red-800">
+                          <div className="flex items-center">
+                            <FiX className="mr-2" />
+                            <span>Formation nicht gefunden: {esvValidationResult.error}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
           
           {/* Dropzone */}
@@ -253,9 +447,14 @@ export default function UploadPage() {
                 <div className="w-full">
                   <button
                     onClick={uploadFiles}
-                    disabled={files.length === 0 || Object.values(uploadStatus).some(status => status === "pending")}
+                    disabled={
+                      files.length === 0 || 
+                      Object.values(uploadStatus).some(status => status === "pending") ||
+                      (useEsvIntegration && !esvValidationResult?.found)
+                    }
                     className={`w-full py-3 px-6 rounded-xl font-medium transition-all ${
-                      Object.values(uploadStatus).some(status => status === "pending")
+                      Object.values(uploadStatus).some(status => status === "pending") ||
+                      (useEsvIntegration && !esvValidationResult?.found)
                         ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                         : "bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 shadow-md hover:shadow-lg"
                     } flex items-center justify-center gap-2`}
@@ -270,7 +469,13 @@ export default function UploadPage() {
                       </>
                     ) : (
                       <>
-                        <FiUpload /> Hochladen starten
+                        <FiUpload /> 
+                        {useEsvIntegration && esvValidationResult?.found 
+                          ? 'Mit ESV-Integration hochladen' 
+                          : useEsvIntegration && !esvValidationResult?.found
+                            ? 'Erst Formation validieren'
+                            : 'Hochladen starten'
+                        }
                       </>
                     )}
                   </button>

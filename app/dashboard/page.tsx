@@ -13,7 +13,7 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const { theme } = useTheme();
-  const { permissions, role, userName, isLoading: userLoading } = useUser();
+  const { permissions, role, isLoading: userLoading } = useUser();
 
   const [hasLoadedTurniere, setHasLoadedTurniere] = useState(false);
 

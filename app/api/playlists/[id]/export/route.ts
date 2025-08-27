@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import { promises as fs } from "fs";
 import { parseBuffer } from "music-metadata";
+import { getCurrentUser } from "../../../../lib/auth";
+import { playlistService } from "../../../../lib/playlist-service";
 
 interface Song {
   id: string;
@@ -22,17 +24,7 @@ interface Playlist {
   turnierId?: string;
 }
 
-interface TokenData {
-  id: string;
-  name: string;
-  token: string;
-  description: string;
-  active: boolean;
-  createdAt: string;
-}
-
 const DB_PATH = path.join(process.cwd(), "data/playlists.json");
-const TOKENS_DB_PATH = path.join(process.cwd(), "data/tokens.json");
 
 // Hilfsfunktionen für Metadaten-Extraktion (aus songs/route.ts)
 function extractTitleFromFilename(filename: string): string {
@@ -69,19 +61,6 @@ function extractArtistFromFilename(filename: string): { artist: string } {
   }
   
   return { artist: "Unbekannter Künstler" };
-}
-
-async function getUserFromToken(token: string | undefined): Promise<string | null> {
-  if (!token) return null;
-  
-  try {
-    const tokensData = await fs.readFile(TOKENS_DB_PATH, "utf-8");
-    const tokens: TokenData[] = JSON.parse(tokensData);
-    const userToken = tokens.find(t => t.token === token && t.active);
-    return userToken ? userToken.id : null;
-  } catch {
-    return null;
-  }
 }
 
 async function getSongDetails(songId: string): Promise<Song | null> {
@@ -220,14 +199,34 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') || 'm3u';
     
-    // Prüfe Berechtigung
-    const token = request.cookies.get('auth-token')?.value;
-    const currentUser = await getUserFromToken(token);
+    // Prüfe Berechtigung mit erweiterter Auth
+    const currentUser = await getCurrentUser(request);
     
-    if (!currentUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'ausrichter')) {
+      return NextResponse.json({ error: "Nicht autorisiert für Playlist-Export" }, { status: 403 });
     }
     
+    // Versuche zuerst ESV-Integration (neue Playlist-Service)
+    try {
+      const m3uContent = await playlistService.exportPlaylistAsM3U(id);
+      
+      if (format === 'm3u') {
+        const safePlaylistName = `playlist_${id}`;
+        const filename = `${safePlaylistName}.m3u`;
+        
+        return new NextResponse(m3uContent, {
+          headers: {
+            'Content-Type': 'audio/x-mpegurl',
+            'Content-Disposition': `attachment; filename="${filename}"`,
+            'Cache-Control': 'no-cache'
+          }
+        });
+      }
+    } catch (esvError) {
+      console.log('ESV-Playlist nicht gefunden, verwende Legacy-System:', esvError);
+    }
+    
+    // Fallback auf Legacy-System
     // Playlist laden
     const playlistData = await fs.readFile(DB_PATH, "utf-8");
     const playlists: Playlist[] = JSON.parse(playlistData);

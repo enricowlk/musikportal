@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
-import { UserRole } from '@/app/types';
+import { UserRole, TokenData } from '@/app/types';
 import { hasPermission } from '@/app/lib/permissions';
 
-interface TokenData {
+// Erweiterte User-Daten für ESV-Integration
+export interface CurrentUser {
   id: string;
   name: string;
-  token: string;
-  description: string;
   role: UserRole;
+  token: string;
+  esvId?: string;
+  vereinId?: string;
   active: boolean;
-  createdAt: string;
 }
 
 export async function checkPermission(
@@ -48,6 +49,38 @@ export async function checkPermission(
     };
   } catch {
     return { hasAccess: false };
+  }
+}
+
+export async function getCurrentUser(request: NextRequest): Promise<CurrentUser | null> {
+  const token = request.cookies.get('auth-token')?.value;
+  
+  if (!token) {
+    return null;
+  }
+  
+  try {
+    const tokensData = await fs.readFile(process.cwd() + "/data/tokens.json", "utf-8");
+    const tokens: TokenData[] = JSON.parse(tokensData);
+    
+    const validToken = tokens.find(t => t.token === token && t.active);
+    
+    if (!validToken) {
+      return null;
+    }
+    
+    return {
+      id: validToken.id,
+      name: validToken.name,
+      role: validToken.role,
+      token: validToken.token,
+      esvId: validToken.esvId,
+      vereinId: validToken.vereinId,
+      active: validToken.active
+    };
+  } catch (error) {
+    console.error('Error getting current user:', error);
+    return null;
   }
 }
 

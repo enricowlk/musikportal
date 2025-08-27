@@ -68,7 +68,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
     // Nur einmal prüfen
     checkAuth();
-  }, []); // Leere dependency array für einmalige Ausführung
+  }, [router, updateUserInfo]); // Dependencies hinzufügen
 
   // Zeige Loading während der Authentifizierung geprüft wird
   if (isLoading) {
