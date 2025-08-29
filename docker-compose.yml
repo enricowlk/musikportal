@@ -26,5 +26,5 @@ services:
       start_period: 40s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.tanzen-musik.rule=Host(`your-domain.com`)"
-      - "traefik.http.services.tanzen-musik.loadbalancer.server.port=3000"
+      - "traefik.http.routers.musikportal.rule=Host(`your-domain.com`)"
+      - "traefik.http.services.musikportal.loadbalancer.server.port=3000"
