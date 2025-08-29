@@ -1,5 +1,5 @@
 #!/bin/bash
-# Docker Management Script für Tanzen Musik Website
+# Docker Management Script für Musikportal Website
 
 set -e
 
@@ -29,7 +29,7 @@ log_error() {
 
 # Hilfe anzeigen
 show_help() {
-    echo "Docker Management für Tanzen Musik Website"
+    echo "Docker Management für Musikportal Website"
     echo ""
     echo "Verwendung: $0 [COMMAND]"
     echo ""
@@ -49,7 +49,7 @@ show_help() {
 # Docker Image bauen
 build_image() {
     log_info "Baue Docker Image..."
-    docker build -t tanzen-musik-website .
+    docker build -t Musikportal .
     log_success "Docker Image erfolgreich gebaut!"
 }
 
@@ -90,7 +90,7 @@ show_status() {
 clean_all() {
     log_warning "Lösche alle Docker Ressourcen..."
     docker-compose down
-    docker rmi tanzen-musik-website 2>/dev/null || true
+    docker rmi Musikportal 2>/dev/null || true
     docker system prune -f
     log_success "Aufräumen abgeschlossen!"
 }

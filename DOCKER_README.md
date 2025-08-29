@@ -1,6 +1,6 @@
-# Docker Setup für Tanzen Musik Website
+# Docker Setup für Musikportal Website
 
-Diese Anleitung beschreibt, wie du die Tanzen Musik Website lokal mit Docker ausführst.
+Diese Anleitung beschreibt, wie du die Musikportal Website lokal mit Docker ausführst.
 
 ## Voraussetzungen
 
@@ -112,7 +112,7 @@ docker-compose up --build
 
 ## Entwicklung mit Docker
 
-Für die Entwicklung kannst du auch ein Development Setup verwenden:
+Für die Entwicklung kann du auch ein Development Setup verwendet werden:
 
 ```yaml
 # docker-compose.dev.yml

@@ -1,6 +1,6 @@
 @echo off
 REM Docker Management Script für Windows PowerShell
-REM Tanzen Musik Website
+REM Musikportal
 
 setlocal EnableDelayedExpansion
 
@@ -24,7 +24,7 @@ if "%1"=="shell" goto :shell
 goto :help
 
 :help
-echo Docker Management für Tanzen Musik Website
+echo Docker Management für Musikportal Website
 echo.
 echo Verwendung: %0 [COMMAND]
 echo.
@@ -43,7 +43,7 @@ goto :end
 
 :build
 echo %BLUE%[INFO]%NC% Baue Docker Image...
-docker build -t tanzen-musik-website .
+docker build -t Musikportal .
 if %ERRORLEVEL% equ 0 (
     echo %GREEN%[SUCCESS]%NC% Docker Image erfolgreich gebaut!
 ) else (
