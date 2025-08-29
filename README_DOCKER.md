@@ -1,4 +1,4 @@
-# 🎵 Tanzen Musik Website - Docker Setup
+# 🎵 Musikportal Website - Docker Setup
 
 ## 🚀 Sofort deploybar!
 
